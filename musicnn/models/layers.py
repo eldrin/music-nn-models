@@ -164,8 +164,10 @@ class STFT(nn.Module):
     def _magnitude(self, x):
         return (x[..., 0]**2 + x[..., 1]**2)**0.5
     
-    def _log(self, x):
-        return torch.log10(torch.max(x, torch.tensor([1e-8])))
+    def _log(self, x, eps=1e-8):
+        eps = torch.tensor([eps]).float()
+        if x.is_cuda: eps = eps.cuda()
+        return torch.log10(torch.max(x, eps))
     
     def forward(self, x):
         X = torch.stft(x, self.n_fft, self.hop_sz)

@@ -18,11 +18,8 @@ from tensorboardX import SummaryWriter  # tensorboard logger
 
 from tqdm import tqdm, trange
 
-from .config import Config as cfg
-from .ops import mu_law_decode
-from .optimizer import MultipleOptimizer
-from .loss import BPROpt
-from .utils import save_checkpoint, load_checkpoint
+from ..config import Config as cfg
+from ..utils.utils import save_checkpoint, load_checkpoint
 
 
 class BaseTrainer(object):

@@ -13,13 +13,18 @@ class VGGlike2DAutoTagger(nn.Module):
     def __init__(self, n_outputs, sig_len=44100, n_fft=1024, hop_sz=256,
                  n_hidden=256, layer1_channels=8, kernel_size=3,
                  pooling=nn.MaxPool2d, pool_size=2, non_linearity=nn.ReLU,
-                 global_average_pooling=True, batch_norm=True):
+                 global_average_pooling=True, batch_norm=True, dropout=0.5):
         """"""
         super().__init__()
         if batch_norm:
             hid_bn = partial(nn.BatchNorm1d, num_features=n_hidden)
         else:
             hid_bn = Identity
+
+        if dropout and isinstance(dropout, (int, float)) and dropout > 0:
+            _dropout = partial(nn.Dropout, p=dropout)
+        else:
+            _dropout = Identity
         
         self.stft = STFT(n_fft=n_fft, hop_sz=hop_sz,
                          magnitude=True, log=True)
@@ -35,7 +40,8 @@ class VGGlike2DAutoTagger(nn.Module):
 
         # put on some decision (prediction) layers on top of it
         self.P = nn.Sequential(
-            nn.Linear(n_hidden, n_hidden), hid_bn(), non_linearity(),
+            nn.Linear(n_hidden, n_hidden),
+            hid_bn(), non_linearity(), _dropout(),
             nn.Linear(n_hidden, n_outputs)
         )
 

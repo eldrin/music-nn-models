@@ -48,6 +48,6 @@ class MSDLastFM50(AudioDataset):
     def _retrieve_target(self, fn):
         """"""
         ix = np.array([TAGS[tag] for tag in self.target[fn]])
-        out = np.zeros((len(TAGS),))
+        out = np.zeros((len(TAGS),), dtype=np.float32)
         out[ix] = 1
         return out
