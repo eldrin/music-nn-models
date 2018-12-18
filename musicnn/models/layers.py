@@ -142,10 +142,35 @@ class Flattening(nn.Module):
 
 
 class Identity(nn.Module):
-    """Identity layer
+    """Identity module
     """
     def __init__(self):
         super().__init__()
 
     def forward(self, x):
         return x
+
+
+class STFT(nn.Module):
+    """STFT module
+    """
+    def __init__(self, n_fft, hop_sz, magnitude=True, log=True):
+        super().__init__()
+        self.n_fft = n_fft
+        self.hop_sz = hop_sz
+        self.magnitude = magnitude
+        self.log = log
+
+    def _magnitude(self, x):
+        return (x[..., 0]**2 + x[..., 1]**2)**0.5
+    
+    def _log(self, x):
+        return torch.log10(torch.max(x, torch.tensor([1e-8])))
+    
+    def forward(self, x):
+        X = torch.stft(x, self.n_fft, self.hop_sz)
+        if self.magnitude:
+            X = self._magnitude(X)
+        if self.log:
+            X = self._log(X)
+        return X
