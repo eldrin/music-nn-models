@@ -30,6 +30,8 @@ class VGGlike2DAutoTagger(nn.Module):
                          magnitude=True, log=True)
         test_x = self.stft(torch.randn(sig_len))
         self.input_shape = test_x.numpy().shape  # shape of input STFT
+        self.sig_len = sig_len  # length of input signal
+
         self.bn0 = nn.BatchNorm1d(n_fft // 2 + 1)
         # # it's only used as online-learning standard scaler
         # self.bn0 = nn.BatchNorm1d(n_fft // 2 + 1, affine=False)
