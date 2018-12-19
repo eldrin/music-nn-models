@@ -13,8 +13,8 @@ from tqdm import trange
 
 from musicnn.config import Config as cfg
 from musicnn.datasets.audiodataset import MuLawDecoding
-from musicnn.datasets.autotagging import MSDLastFM50, TAGS
-from musicnn.models.autotagging import VGGlike2DAutoTagger
+from musicnn.datasets import MSDLastFM50, TAGS
+from musicnn.models import VGGlike2DAutoTagger
 from musicnn.evaluation.metrics import roc_auc_score, ndcg, apk
 
 

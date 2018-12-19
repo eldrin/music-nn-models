@@ -9,9 +9,9 @@ from torchvision.transforms import Compose
 
 from musicnn.config import Config as cfg
 from musicnn.datasets.audiodataset import MuLawDecoding
-from musicnn.datasets.autotagging import MSDLastFM50, TAGS
-from musicnn.trainers.autotagging import AutoTaggingTrainer
-from musicnn.models.autotagging import VGGlike2DAutoTagger
+from musicnn.datasets import MSDLastFM50, TAGS
+from musicnn.trainers import AutoTaggingTrainer
+from musicnn.models import VGGlike2DAutoTagger
 
 
 # setup variables
