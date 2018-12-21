@@ -21,11 +21,40 @@ class BaseEncoder(nn.Module):
         raise NotImplementedError()
 
 
+class BaseDecoder(nn.Module):
+    """Base decoder class to specify the spec
+
+    Args:
+        encoder (BaseEncoder): encoder that is to be used for building decoder
+    """
+    def __init__(self, encoder):
+        """"""
+        super().__init__()
+        self._build_decoder(encoder)
+    
+    def _build_decoder(self, encoder):
+        """"""
+        raise NotImplementedError()
+    
+    def forward(self, z):
+        """"""
+        raise NotImplementedError()
+
+
 class VGGlike2DEncoder(BaseEncoder):
     """VGG-like model for encoding 2D music input to latent vector
 
     Args:
+        input_shape (tuple): the size of width and height of input image
         n_hidden (int): number of hidden units of the output of the encoder
+        layer1_channels (int): number of filters in first layer. it doubles up
+        kernel_size (int): size (both width and height) of the 2D kernel
+        pooling (nn.Pooling?): pooling class to be applied to the model
+        pool_size (int): scale of the sub-sampling of pooling layer
+        non_linearity (nn.(any-non-linearity)): non linearity of the model
+        global_average_pooling (bool): indicator for applying GAP.
+                                       if false, the hidden activation is flatten
+        batch_norm (bool): indicator for applying batch-normalization
     """
     def __init__(self, input_shape=(256, 512), n_hidden=256, layer1_channels=8,
                  kernel_size=3, pooling=nn.MaxPool2d, pool_size=2,
@@ -84,6 +113,26 @@ class VGGlike2DEncoder(BaseEncoder):
         for layer in self.encoder:
             z = layer(z)
         return z
+
+
+class VGGlike2DDecoder(BaseDecoder):
+    """VGG-like model for encoding 2D music input to latent vector
+
+    Args:
+        encoder (BaseEncoder): encoder that is to be used for building decoder
+    """
+    def __init__(self, encoder):
+        """"""
+        super().__init__(encoder)
+
+    def _build_decoder(self, encoder):
+        """"""
+        # for layer in encoder:
+        #     if isinstance(layer, SameConv2D):
+    
+    def forward(self, z):
+        """"""
+        raise NotImplementedError()
 
 
 class SameConv2D(nn.Module):

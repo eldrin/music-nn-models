@@ -20,7 +20,7 @@ from musicnn.evaluation.metrics import roc_auc_score, ndcg, apk
 
 # load the checkpoint
 checkpoint = torch.load(
-    '/data/models/MSDLastFM50_Test_dropout_it50.pth',
+    '/data/models/MSDLastFM50_Test_dropout_sclr_it150.pth',
     lambda a, b: a  # make sure the model is loaded on CPU
 )
 
@@ -60,6 +60,6 @@ TRUE, PRED = np.array(TRUE), np.concatenate(PRED, axis=0)
 
 # claculate metrics
 print('NDCG@5:', ndcg(TRUE, PRED, k=5))
-print('APK@5:', apk(TRUE, PRED, k=5))
+print('AP@5:', apk(TRUE, PRED, k=5))
 print('AUC[T]:', roc_auc_score(TRUE, PRED, average='macro'))
 print('AUC[S]:', roc_auc_score(TRUE, PRED, average='samples'))
