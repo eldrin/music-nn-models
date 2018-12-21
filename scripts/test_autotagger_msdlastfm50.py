@@ -20,7 +20,7 @@ from musicnn.evaluation.metrics import roc_auc_score, ndcg, apk
 
 # load the checkpoint
 checkpoint = torch.load(
-    '/data/models/MSDLastFM50_Test_dropout_it500.pth',
+    '/data/models/MSDLastFM50_Test_dropout_it50.pth',
     lambda a, b: a  # make sure the model is loaded on CPU
 )
 

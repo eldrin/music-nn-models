@@ -1,3 +1,3 @@
 ## TODOs
 
-1. Improve modularazation of preprocessing part by generalization
+1. Adding other models?

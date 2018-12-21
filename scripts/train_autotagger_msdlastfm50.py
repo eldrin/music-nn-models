@@ -16,7 +16,7 @@ from musicnn.models import VGGlike2DAutoTagger
 
 # setup variables
 audio_root = '/home/jaykim/Documents/datasets/MSD/npy/'
-model_path = '/data/models/MSDLastFM50_Test_dropout'
+model_path = '/data/models/MSDLastFM50_Test_dropout_sclr'
 fold = 0
 n_tags = len(TAGS)
 

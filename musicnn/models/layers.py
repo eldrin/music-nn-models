@@ -176,3 +176,25 @@ class STFT(nn.Module):
         if self.log:
             X = self._log(X)
         return X
+
+
+class StandardScaler(nn.Module):
+    """Standard scaler for z-scoring
+    """
+    def __init__(self, mean, std, eps=1e-10):
+        super().__init__()
+        self.mean_ = nn.Parameter(torch.FloatTensor(mean))
+        self.std_ = nn.Parameter(torch.FloatTensor(np.maximum(std, eps)))
+
+        # to make sure these are not learned
+        self.mean_.requires_grad = False
+        self.std_.requires_grad = False
+    
+    def forward(self, x):
+        if x.dim() == 2:
+            return (x - self.mean_[None]) / self.std_[None]
+        elif x.dim() == 3:
+            return (x - self.mean_[None, :, None]) / self.std_[None, :, None]
+        else:
+            raise ValueError('[ERROR] only 2 to 3 dimensional \
+                              input is supported!')
