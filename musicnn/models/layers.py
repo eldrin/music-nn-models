@@ -1,3 +1,4 @@
+from functools import reduce, partial
 import numpy as np
 
 import torch
@@ -56,9 +57,9 @@ class VGGlike2DEncoder(BaseEncoder):
                                        if false, the hidden activation is flatten
         batch_norm (bool): indicator for applying batch-normalization
     """
-    def __init__(self, input_shape=(256, 512), n_hidden=256, layer1_channels=8,
-                 kernel_size=3, pooling=nn.MaxPool2d, pool_size=2,
-                 non_linearity=nn.ReLU, global_average_pooling=True,
+    def __init__(self, input_shape=(256, 512), n_hidden=256, n_convs=1,
+                 layer1_channels=8, kernel_size=3, pooling=nn.MaxPool2d,
+                 pool_size=2, non_linearity=nn.ReLU, global_average_pooling=True,
                  batch_norm=True):
         """"""
         super().__init__()
@@ -69,6 +70,7 @@ class VGGlike2DEncoder(BaseEncoder):
         self.non_linearity = non_linearity
         self.global_average_pooling = global_average_pooling
         self.conv_layers = []
+        self.n_convs = n_convs
 
         # build
         z = test_x = torch.randn(1, 1, input_shape[0], input_shape[1])
@@ -76,11 +78,12 @@ class VGGlike2DEncoder(BaseEncoder):
         out_chan = layer1_channels
         while z.shape[-1] > 1 and z.shape[-2] > 1:
             # build
-            self.conv_layers.extend([
-                SameConv2D(in_chan, out_chan, kernel_size, batch_norm=batch_norm),
-                self.pooling_layer(pool_size),
-                self.non_linearity()
-            ])
+            self.conv_layers.append(
+                ConvBlock2D(
+                    n_convs, in_chan, out_chan, kernel_size,
+                    pooling, pool_size, non_linearity, batch_norm
+                )
+            )
             encoder_ = nn.Sequential(*self.conv_layers)   
             z = encoder_(test_x)
 
@@ -91,11 +94,19 @@ class VGGlike2DEncoder(BaseEncoder):
             else:
                 in_chan = out_chan
 
+        # cache this info for building decoder
+        # NOTE: not containing the batch dimension!
+        self.shape_before_squeeze = z.shape[1:]
+
         # global average pooling
+        # also, cache output hidden shape
+        # NOTE: not containing the batch dimension!
         if self.global_average_pooling:
             self.conv_layers.append(GlobalAveragePooling())
+            self.shape_hidden = self.n_hidden
         else:  # otherwise, flatten it
             self.conv_layers.append(Flattening())
+            self.shape_hidden = self.shape_before_squeeze
 
         # initiate the encoder
         self.encoder = nn.ModuleList(self.conv_layers)
@@ -121,18 +132,120 @@ class VGGlike2DDecoder(BaseDecoder):
     Args:
         encoder (BaseEncoder): encoder that is to be used for building decoder
     """
-    def __init__(self, encoder):
-        """"""
-        super().__init__(encoder)
-
     def _build_decoder(self, encoder):
         """"""
-        # for layer in encoder:
-        #     if isinstance(layer, SameConv2D):
-    
+        decoder = []
+        test_x = torch.randn(1, 1, *encoder.input_shape)
+        for i, layer in enumerate(encoder.encoder):
+            # inverse of terminal `squeezing` layer
+            if isinstance(layer, (GlobalAveragePooling, Flattening)):
+                # in this case, we need to span the hidden layer into higher dim
+                if isinstance(layer, GlobalAveragePooling):
+                    numel = reduce(np.multiply, encoder.shape_before_squeeze)
+                    decoder.append(
+                        nn.Sequential(
+                            nn.Linear(encoder.n_hidden, numel),
+                            UnFlattening(encoder.shape_before_squeeze)
+                        )
+                    )
+                else:
+                    decoder.append(UnFlattening(encoder.shape_before_squeeze))
+
+            elif isinstance(layer, ConvBlock2D):
+                if i == len(encoder.encoder) - 1:  # terminal layer
+                    non_lin = Identity
+                else:
+                    non_lin = encoder.non_linearity
+
+                target_shape = test_x.shape[2:]  # only spatial dimension
+                test_x = layer(test_x)
+
+                decoder.append(TransposedConvBlock2D(
+                    layer.n_convs, layer.out_channels, layer.in_channels,
+                    layer.kernel_size, layer.pooling, target_shape,
+                    non_lin, layer.batch_norm
+                ))
+
+        self.decoder = nn.ModuleList(decoder[::-1])
+
     def forward(self, z):
         """"""
-        raise NotImplementedError()
+        X = z
+        for layer in self.decoder:
+            X = layer(X)
+        return X
+
+
+class ConvBlock2D(nn.Module):
+    """Convolution block contains conv-pool chain and other layers
+
+    Optionally, can have multiple conv layers and batch_norm / dropout layers
+    """
+    def __init__(self, n_convs, in_channels, out_channels, kernel_size,
+                 pooling, pool_size, non_linearity, batch_norm):
+        """"""
+        super().__init__()
+        self.n_convs = n_convs
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        self.pooling = pooling
+        self.pool_size = pool_size
+        self.batch_norm = batch_norm
+
+        convs = []
+        for i in range(n_convs):
+            if i == 0:
+                in_chan = self.in_channels
+            else:
+                in_chan = self.out_channels
+
+            convs.append(
+                SameConv2D(in_chan, out_channels, kernel_size,
+                           batch_norm=batch_norm)
+            )
+        self.convs = nn.Sequential(*convs)
+        self.pool = pooling(pool_size)
+        self.non_linearity = non_linearity()
+    
+    def forward(self, x):
+        return self.pool(self.non_linearity(self.convs(x)))
+
+
+class TransposedConvBlock2D(nn.Module):
+    """Transposed ConvBlock2D for building decoder
+    """
+    def __init__(self, n_convs, in_channels, out_channels, kernel_size,
+                 pooling, pool_size, non_linearity, batch_norm):
+        """"""
+        super().__init__()
+        self.n_convs = n_convs
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        self.pooling = pooling
+        self.pool_size = pool_size
+        self.batch_norm = batch_norm
+
+        convs = []
+        for i in range(n_convs):
+            if i == 0:
+                in_chan = self.in_channels
+            else:
+                in_chan = self.out_channels
+
+            convs.append(
+                SameConv2D(in_chan, out_channels, kernel_size,
+                           batch_norm=batch_norm)
+            )
+        self.convs = nn.Sequential(*convs)
+        self.unpool = partial(F.interpolate,
+                              size=pool_size, mode='bilinear', align_corners=True)
+        self.non_linearity = non_linearity()
+
+    def forward(self, x):
+        """"""
+        return self.non_linearity(self.convs(self.unpool(x)))
 
 
 class SameConv2D(nn.Module):
@@ -142,6 +255,14 @@ class SameConv2D(nn.Module):
                  dilation=1, groups=1, batch_norm=True):
 
         super().__init__()
+
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.dilation = dilation
+        self.groups = groups
+        self.batch_norm = batch_norm
 
         # build padder
         pad = []
@@ -188,6 +309,22 @@ class Flattening(nn.Module):
     
     def forward(self, x):
         return x.view(x.shape[0], x.shape[1], -1)
+
+
+class UnFlattening(nn.Module):
+    """Un-Flatten input based on the original shape
+    
+    Args:
+        original_shape (torch.Size): target output shape. number of element
+                                     should be same to the input tensor
+    """
+    def __init__(self, original_shape):
+        super().__init__()
+        self.original_shape = original_shape
+    
+    def forward(self, x):
+        # sanity check
+        return x.view(x.shape[0], *self.original_shape)
 
 
 class Identity(nn.Module):

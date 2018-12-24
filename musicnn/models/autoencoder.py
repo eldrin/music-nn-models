@@ -5,14 +5,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as f
 
-from .layers import VGGlike2DEncoder, Identity
+from .layers import VGGlike2DEncoder, VGGlike2DDecoder, Identity
 from .architecture import STFTInputNetwork
 
 
-class VGGlike2DAutoTagger(STFTInputNetwork):
-    """VGG-like 2D auto-tagger
+class VGGlike2DAutoEncoder(STFTInputNetwork):
+    """VGG-like 2D auto-encoder
     """
-    def __init__(self, n_outputs, sig_len=44100, n_fft=1024, hop_sz=256,
+    def __init__(self, sig_len=44100, n_fft=1024, hop_sz=256,
                  n_hidden=256, layer1_channels=8, kernel_size=3, n_convs=1,
                  pooling=nn.MaxPool2d, pool_size=2, non_linearity=nn.ReLU,
                  global_average_pooling=True, batch_norm=True, dropout=0.5):
@@ -41,11 +41,21 @@ class VGGlike2DAutoTagger(STFTInputNetwork):
         self.P = nn.Sequential(
             nn.Linear(n_hidden, n_hidden),
             hid_bn(), non_linearity(), _dropout(),
-            nn.Linear(n_hidden, n_outputs)
         )
+
+        # put decoder on top of it
+        self.iP = nn.Sequential(
+            nn.Linear(n_hidden, n_hidden),
+            hid_bn(), non_linearity()
+        )
+
+        # put decoder for convolution encoders
+        self.D = VGGlike2DDecoder(self.E)
 
     def get_hidden_state(self, x, layer=10):
         return self.E.get_hidden_state(self._preproc(x), layer)
 
     def forward(self, x):
-        return self.P(self.E(self._preproc(x)))
+        X = self._preproc(x)
+        Xhat = self.D(self.iP(self.P(self.E(X))))
+        return X, Xhat
