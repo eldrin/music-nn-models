@@ -154,8 +154,10 @@ class VGGlike2DDecoder(BaseDecoder):
             elif isinstance(layer, ConvBlock2D):
                 if i == 0:  # terminal layer
                     non_lin = Identity
+                    batch_norm = False
                 else:
                     non_lin = encoder.non_linearity
+                    batch_norm = layer.batch_norm
 
                 target_shape = test_x.shape[2:]  # only spatial dimension
                 test_x = layer(test_x)
@@ -163,7 +165,7 @@ class VGGlike2DDecoder(BaseDecoder):
                 decoder.append(TransposedConvBlock2D(
                     layer.n_convs, layer.out_channels, layer.in_channels,
                     layer.kernel_size, layer.pooling, target_shape,
-                    non_lin, layer.batch_norm
+                    non_lin, batch_norm
                 ))
 
         self.decoder = nn.ModuleList(decoder[::-1])
