@@ -152,7 +152,7 @@ class VGGlike2DDecoder(BaseDecoder):
                     decoder.append(UnFlattening(encoder.shape_before_squeeze))
 
             elif isinstance(layer, ConvBlock2D):
-                if i == len(encoder.encoder) - 1:  # terminal layer
+                if i == 0:  # terminal layer
                     non_lin = Identity
                 else:
                     non_lin = encoder.non_linearity
