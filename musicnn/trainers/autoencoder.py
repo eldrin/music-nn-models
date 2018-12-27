@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from .trainer import BaseTrainer
 
@@ -17,7 +18,9 @@ class AutoEncoderTrainer(BaseTrainer):
             n_epochs, valid_dataset, loss_every, save_every,
             is_gpu, out_root, name, n_jobs, checkpoint
         )
-        self.loss = nn.MSELoss()
+        # self.loss = nn.MSELoss()
+        self.loss = kl_with_logits
+
         print('GPU training:', self.is_gpu)
 
     def _parse_data(self, batch):
@@ -39,3 +42,22 @@ class AutoEncoderTrainer(BaseTrainer):
         S, Shat = self.model(X)  # spectrogram / prediction of it
         l = self.loss(Shat, S)
         return l
+
+
+def kl_with_logits(x, y, dim=2, eps=1e-10):
+    """Helper function for getting KL with logits as input
+
+    Args:
+        x (torch.tensor): input prediction
+        y (torch.tensor): target prob. distribution
+        dim (int): dimension where the variables spanned over
+        eps (float): small number for preventing overflow
+    """
+    eps = torch.tensor([eps])
+    if x.is_cuda:
+        eps = eps.cuda()
+        
+    return F.kl_div(
+        torch.max(F.softmax(x, dim=dim), eps).log(),
+        y, reduction='sum'
+    ) / x.shape[0]

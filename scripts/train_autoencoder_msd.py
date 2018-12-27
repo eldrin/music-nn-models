@@ -16,7 +16,7 @@ from musicnn.models import VGGlike2DAutoEncoder
 
 # setup variables
 audio_root = '/home/jaykim/Documents/datasets/MSD/npy/'
-model_path = '/data/models/MSDAE_test'
+model_path = '/data/models/MSDAE_kl_test'
 fold = 0
 
 # load the dataset
@@ -28,7 +28,7 @@ train_dataset = MSDAudio_(split='train')
 valid_dataset = MSDAudio_(split='valid')
 
 # spawn a model
-model = VGGlike2DAutoEncoder()
+model = VGGlike2DAutoEncoder(normalization='sum2one')
 
 # spawn a trainer
 trainer = AutoEncoderTrainer(

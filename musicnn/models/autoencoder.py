@@ -12,24 +12,18 @@ from .architecture import STFTInputNetwork
 class VGGlike2DAutoEncoder(STFTInputNetwork):
     """VGG-like 2D auto-encoder
     """
-    def __init__(self, sig_len=44100, n_fft=1024, hop_sz=256,
-                 n_hidden=256, layer1_channels=8, kernel_size=3, n_convs=1,
+    def __init__(self, sig_len=44100, n_hidden=256, n_fft=1024, hop_sz=256,
+                 layer1_channels=8, kernel_size=3, n_convs=1,
                  pooling=nn.MaxPool2d, pool_size=2, non_linearity=nn.ReLU,
-                 global_average_pooling=True, batch_norm=True, dropout=0.5):
+                 global_average_pooling=True, batch_norm=True, dropout=0.5,
+                 normalization='standard'):
         """"""
-        super().__init__(sig_len, n_fft, hop_sz,
-                         magnitude=True, log=True, z_score=True)
+        super().__init__(sig_len, n_hidden, batch_norm, dropout, n_fft, hop_sz,
+                         magnitude=True, log=True, normalization=normalization)
 
-        if batch_norm:
-            hid_bn = partial(nn.BatchNorm1d, num_features=n_hidden)
-        else:
-            hid_bn = Identity
+        # bn for first layer
+        self.bn0 = nn.BatchNorm1d(n_fft // 2 + 1)
 
-        if dropout and isinstance(dropout, (int, float)) and dropout > 0:
-            _dropout = partial(nn.Dropout, p=dropout)
-        else:
-            _dropout = Identity
-        
         # initialize the encoder
         self.E = VGGlike2DEncoder(
             self.input_shape, n_hidden, n_convs, layer1_channels,
@@ -40,13 +34,13 @@ class VGGlike2DAutoEncoder(STFTInputNetwork):
         # put on some decision (prediction) layers on top of it
         self.P = nn.Sequential(
             nn.Linear(n_hidden, n_hidden),
-            hid_bn(), non_linearity(), _dropout(),
+            self.hid_bn(), non_linearity(), self._dropout(),
         )
 
         # put decoder on top of it
         self.iP = nn.Sequential(
             nn.Linear(n_hidden, n_hidden),
-            hid_bn(), non_linearity()
+            self.hid_bn(), non_linearity(), self._dropout()
         )
 
         # put decoder for convolution encoders
@@ -57,5 +51,6 @@ class VGGlike2DAutoEncoder(STFTInputNetwork):
 
     def forward(self, x):
         X = self._preproc(x)
-        Xhat = self.D(self.iP(self.P(self.E(X))))
+        X_ = self.bn0(X[:, 0])[:, None]  # input bn
+        Xhat = self.D(self.iP(self.P(self.E(X_))))
         return X, Xhat

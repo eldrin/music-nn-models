@@ -12,13 +12,14 @@ from .architecture import STFTInputNetwork
 class VGGlike2DAutoTagger(STFTInputNetwork):
     """VGG-like 2D auto-tagger
     """
-    def __init__(self, n_outputs, sig_len=44100, n_fft=1024, hop_sz=256,
-                 n_hidden=256, layer1_channels=8, kernel_size=3, n_convs=1,
-                 pooling=nn.MaxPool2d, pool_size=2, non_linearity=nn.ReLU,
-                 global_average_pooling=True, batch_norm=True, dropout=0.5):
+    def __init__(self, n_outputs, sig_len=44100, n_hidden=256, 
+                 n_fft=1024, hop_sz=256, layer1_channels=8, kernel_size=3,
+                 n_convs=1, pooling=nn.MaxPool2d, pool_size=2,
+                 non_linearity=nn.ReLU, global_average_pooling=True,
+                 batch_norm=True, dropout=0.5):
         """"""
         super().__init__(sig_len, n_fft, hop_sz,
-                         magnitude=True, log=True, z_score=True)
+                         magnitude=True, log=True, normalization='standard')
 
         if batch_norm:
             hid_bn = partial(nn.BatchNorm1d, num_features=n_hidden)

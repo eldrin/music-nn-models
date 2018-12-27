@@ -386,3 +386,18 @@ class StandardScaler(nn.Module):
         else:
             raise ValueError('[ERROR] only 2 to 3 dimensional \
                               input is supported!')
+
+
+class SumToOneNormalization(nn.Module):
+    """Normalization divided by the sum of vectors
+    """
+    def __init__(self, dim=0, eps=1e-10):
+        super().__init__()
+        self.dim = dim
+        self.eps = torch.tensor([eps])
+    
+    def forward(self, x):
+        if x.is_cuda:
+            self.eps = self.eps.cuda()
+        x = torch.max(x, self.eps)
+        return x / x.sum(self.dim)[:, None]
