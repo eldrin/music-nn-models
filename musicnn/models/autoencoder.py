@@ -19,7 +19,7 @@ class VGGlike2DAutoEncoder(STFTInputNetwork):
                  normalization='standard'):
         """"""
         super().__init__(sig_len, n_hidden, batch_norm, dropout, n_fft, hop_sz,
-                         magnitude=True, log=True, normalization=normalization)
+                         magnitude=True, log=False, normalization=normalization)
 
         # bn for first layer
         self.bn0 = nn.BatchNorm1d(n_fft // 2 + 1)

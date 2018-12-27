@@ -1,3 +1,4 @@
+import warnings 
 from functools import partial
 
 import torch
@@ -13,6 +14,8 @@ class BaseArchitecture(nn.Module):
     """
     def __init__(self, n_hidden, batch_norm, dropout):
         super().__init__()
+
+        self.n_hidden = n_hidden
 
         if batch_norm:
             self.hid_bn = partial(nn.BatchNorm1d, num_features=n_hidden)
@@ -47,14 +50,37 @@ class STFTInputNetwork(BaseArchitecture):
         self.normalization = normalization
 
         if normalization == 'standard':
+            if not (log and magnitude):
+                warnings.warn(
+                    'When `standard` passed to normalization method,\
+                    both magnitude and log applied to the STFT. \
+                    They\'re changed to proper setup'
+                )
+                self.log = True
+                self.magnitude = True
+
             self.sclr = StandardScaler(*stft_standard_scaler_stats())
         elif normalization == 'sum2one':
+            if log:
+                warnings.warn(
+                    'With `sum2one` normalization method, log should not be \
+                    applied to the STFT. It\'s changed to proper setup.'
+                )
+                self.log = False
+
+            if not magnitude:
+                warnings.warn(
+                    'With `sum2one` normalization method, magnitude should not be \
+                    applied to the STFT. It\'s changed to proper setup.'
+                )
+                self.magnitude = True
+
             self.sclr = SumToOneNormalization(dim=1)
         else:  # None case
             self.sclr = Identity()
     
         self.stft = STFT(n_fft=n_fft, hop_sz=hop_sz,
-                         magnitude=magnitude, log=log)
+                         magnitude=self.magnitude, log=self.log)
         test_x = self.stft(torch.randn(sig_len))
         self.input_shape = test_x.numpy().shape  # shape of input STFT
 

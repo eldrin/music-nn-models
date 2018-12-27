@@ -18,19 +18,9 @@ class VGGlike2DAutoTagger(STFTInputNetwork):
                  non_linearity=nn.ReLU, global_average_pooling=True,
                  batch_norm=True, dropout=0.5):
         """"""
-        super().__init__(sig_len, n_fft, hop_sz,
+        super().__init__(sig_len, n_hidden, batch_norm, dropout, n_fft, hop_sz,
                          magnitude=True, log=True, normalization='standard')
 
-        if batch_norm:
-            hid_bn = partial(nn.BatchNorm1d, num_features=n_hidden)
-        else:
-            hid_bn = Identity
-
-        if dropout and isinstance(dropout, (int, float)) and dropout > 0:
-            _dropout = partial(nn.Dropout, p=dropout)
-        else:
-            _dropout = Identity
-        
         # initialize the encoder
         self.E = VGGlike2DEncoder(
             self.input_shape, n_hidden, n_convs, layer1_channels,
