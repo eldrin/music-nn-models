@@ -24,7 +24,7 @@ class InstRecognitionTrainer(BaseTrainer):
         """"""
         # fetch data
         X = batch['signal']
-        y = batch['target']
+        y = batch['target'].long()
         if 'noisy_signal' in batch:
             X = batch['noisy_signal']
         else:
