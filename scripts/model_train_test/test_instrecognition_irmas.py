@@ -6,6 +6,8 @@ sys.path.append(join(dirname(__file__), '../..'))
 from functools import partial
 
 import numpy as np
+from sklearn.metrics import accuracy_score
+
 import torch
 from torchvision.transforms import Compose
 
@@ -13,11 +15,9 @@ from tqdm import trange
 
 from musicnn.config import Config as cfg
 from musicnn.datasets.audiodataset import MuLawDecoding
-from musicnn.datasets.autotagging import TAGS
-from musicnn.datasets import MSDLastFM50
+from musicnn.datasets.instrecognition import CLS
+from musicnn.datasets import IRMASTraining
 from musicnn.models import VGGlike2DAutoTagger
-from musicnn.evaluation.metrics import roc_auc_score, ndcg, apk
-
 
 # load the checkpoint
 checkpoint = torch.load(
@@ -26,13 +26,13 @@ checkpoint = torch.load(
 )
 
 # initialize model and load the checkpoint
-model = VGGlike2DAutoTagger(len(TAGS))
+model = VGGlike2DAutoTagger(len(CLS))
 model.eval()
 model.load_state_dict(checkpoint['state_dict'])
 
 # get the test dataset
 transformer = Compose([MuLawDecoding(cfg.QUANTIZATION_CHANNELS)])
-test_dataset = MSDLastFM50(
+test_dataset = IRMASTraining(
     songs_root = '/home/jaykim/Documents/datasets/MSD/npy/',
     fold       = 0,
     transform  = transformer,
@@ -55,12 +55,9 @@ for start in trange(0, len(test_dataset), batch_size, ncols=80):
     x = torch.from_numpy(x)
 
     TRUE.extend([sample['target'] for sample in samples])
-    PRED.append(torch.sigmoid(model(x)).data.numpy())
+    PRED.append(torch.argmax(model(x), dim=-1).data.numpy())
 
 TRUE, PRED = np.array(TRUE), np.concatenate(PRED, axis=0)
 
 # claculate metrics
-print('NDCG@5:', ndcg(TRUE, PRED, k=5))
-print('AP@5:', apk(TRUE, PRED, k=5))
-print('AUC[T]:', roc_auc_score(TRUE, PRED, average='macro'))
-print('AUC[S]:', roc_auc_score(TRUE, PRED, average='samples'))
+print('ACC:', accuracy_score(TRUE, PRED))
