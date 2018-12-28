@@ -32,7 +32,7 @@ class MSDLastFM50(AudioDataset):
 
     """
     def __init__(self, songs_root, split='train', fold=0,
-                 crop_len=44100, transform=None):
+                 crop_len=44100, transform=None, on_mem=False):
         """"""
         # load target
         track_tag_map = pkl.load(open(msd_lastfm50_label(), 'rb'))
@@ -43,7 +43,7 @@ class MSDLastFM50(AudioDataset):
         # call super class' constructor
         super().__init__(songs_root, split_info,
                          target=track_tag_map, crop_len=crop_len,
-                         transform=transform)
+                         transform=transform, on_mem=on_mem)
 
     def _retrieve_target(self, fn):
         """"""

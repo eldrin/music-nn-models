@@ -24,7 +24,7 @@ class IRMASTraining(AudioDataset):
     https://www.upf.edu/web/mtg/irmas
     """
     def __init__(self, songs_root, split='train', fold=0,
-                 crop_len=44100, transform=None):
+                 crop_len=44100, transform=None, on_mem=True):
         """"""
         # load split info
         split_info = irmas_train_splits(fold, split)
@@ -32,7 +32,7 @@ class IRMASTraining(AudioDataset):
         # call super class' constructor
         super().__init__(songs_root, split_info,
                          target=None, crop_len=crop_len,
-                         transform=transform)
+                         transform=transform, on_mem=True)
 
         # build target map
         self.target = {fn: dirname(fn) for fn in self.subset_fns}
