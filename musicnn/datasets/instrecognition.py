@@ -39,7 +39,6 @@ class IRMASTraining(AudioDataset):
 
     def _retrieve_target(self, fn):
         """"""
-        ix = np.array([CLS[tag] for tag in self.target[fn]])
         out = np.zeros((len(CLS),), dtype=np.float32)
-        out[ix] = 1
+        out[CLS[self.target[fn]]] = 1
         return out
