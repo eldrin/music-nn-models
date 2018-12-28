@@ -139,10 +139,10 @@ class BaseTrainer(object):
                 self.model.train()
                 for i, batch in enumerate(self.train_dataset):
                     tloss = self.partial_fit(batch)
-                    self.iters += 1
                     if self.iters % self.loss_every == 0:
                         # training log
                         self.logger.add_scalar('tloss', tloss.item(), self.iters)
+                    self.iters += 1
 
                 # evaluation (only calc evaluation loss at the moment)
                 if self.valid_dataset is not None:
