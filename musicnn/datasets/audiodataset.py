@@ -18,14 +18,23 @@ from ..utils.ops import mu_law_decode
 class AudioDataset(Dataset):
     """"""
     def __init__(self, songs_root, subset_info, target=None,
-                 crop_len=44100, transform=None):
+                 crop_len=44100, transform=None, on_mem=False):
         """"""
+        super().__init__()
+
         self.songs_root = songs_root
         with open(subset_info) as f:
             self.subset_fns = [l.replace('\n','') for l in f.readlines()]
         self.crop_len = crop_len
         self.transform = transform
         self.target = target
+        self.on_mem = on_mem
+
+        if self.on_mem:
+            print('Loading audio to the memory!...')
+            self.X = {}
+            for fn in tqdm(self.subset_fns, ncols=80):
+                self.X[fn] = np.load(join(self.songs_root, fn))
 
     def __len__(self):
         """"""
@@ -37,7 +46,7 @@ class AudioDataset(Dataset):
         fn = self.subset_fns[idx]
 
         # load the audio
-        x = np.load(join(self.songs_root, fn), mmap_mode='r')
+        x = self._retrieve_audio(fn)
         x_ = np.array(self._crop_signal(x), dtype=x.dtype)
 
         # retrieve target
@@ -54,6 +63,17 @@ class AudioDataset(Dataset):
             sample = self.transform(sample)
 
         return sample
+
+    def _retrieve_audio(self, fn):
+        """Retrieve audio signal from path
+
+        Args:
+            fn (str): path to the signal
+        """
+        if self.on_mem:
+            return self.X[fn]
+        else:
+            return np.load(join(self.songs_root, fn), mmap_mode='r')
 
     def _retrieve_target(self, fn):
         """Retrieve target value from data
