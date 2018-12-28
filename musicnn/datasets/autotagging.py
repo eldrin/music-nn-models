@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from .audiodataset import AudioDataset
-from .files import msd_lastfm50_metadata, msd_lastfm50_splits
+from .files import msd_lastfm50_label, msd_lastfm50_splits
 
 # from: https://github.com/keunwoochoi/MSD_split_for_tagging
 TAGS = ['rock', 'pop', 'alternative', 'indie', 'electronic',
@@ -35,7 +35,7 @@ class MSDLastFM50(AudioDataset):
                  crop_len=44100, transform=None):
         """"""
         # load target
-        track_tag_map = pkl.load(open(msd_lastfm50_metadata(), 'rb'))
+        track_tag_map = pkl.load(open(msd_lastfm50_label(), 'rb'))
 
         # load split info
         split_info = msd_lastfm50_splits(fold, split)

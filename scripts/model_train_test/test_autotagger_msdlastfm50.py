@@ -2,7 +2,7 @@ import os
 from os.path import join, basename, dirname
 import sys
 # add repo root to the system path
-sys.path.append(join(dirname(__file__), '..'))
+sys.path.append(join(dirname(__file__), '../..'))
 from functools import partial
 
 import numpy as np
