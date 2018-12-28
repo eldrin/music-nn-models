@@ -13,9 +13,10 @@ STANDARD_SCALER_STATS = 'data/dBstft_standardscaler_stats.npy'
 
 
 __all__ = [
-    'msd_lastfm50_metadata',
+    'msd_lastfm50_label',
     'msd_lastfm50_splits',
     'irmas_train_metadata',
+    'irmas_train_splits',
     'stft_standard_scaler_stats'
 ]
 
