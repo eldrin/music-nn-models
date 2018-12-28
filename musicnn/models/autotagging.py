@@ -19,7 +19,10 @@ class VGGlike2DAutoTagger(STFTInputNetwork):
                  batch_norm=True, dropout=0.5):
         """"""
         super().__init__(sig_len, n_hidden, batch_norm, dropout, n_fft, hop_sz,
-                         magnitude=True, log=True, normalization='standard')
+                         magnitude=True, log=True, normalization='sum2one')
+
+        # bn for first layer
+        self.bn0 = nn.BatchNorm1d(n_fft // 2 + 1)
 
         # initialize the encoder
         self.E = VGGlike2DEncoder(
@@ -36,7 +39,11 @@ class VGGlike2DAutoTagger(STFTInputNetwork):
         )
 
     def get_hidden_state(self, x, layer=10):
-        return self.E.get_hidden_state(self._preproc(x), layer)
+        X = self._preproc(x)
+        X_ = self.bn0(X[:, 0])[:, None]  # input bn
+        return self.E.get_hidden_state(X_, layer)
 
     def forward(self, x):
-        return self.P(self.E(self._preproc(x)))
+        X = self._preproc(x)
+        X_ = self.bn0(X[:, 0])[:, None]  # input bn
+        return self.P(self.E(X_))

@@ -47,7 +47,9 @@ class VGGlike2DAutoEncoder(STFTInputNetwork):
         self.D = VGGlike2DDecoder(self.E)
 
     def get_hidden_state(self, x, layer=10):
-        return self.E.get_hidden_state(self._preproc(x), layer)
+        X = self._preproc(x)
+        X_ = self.bn0(X[:, 0])[:, None]  # input bn
+        return self.E.get_hidden_state(X_, layer)
 
     def forward(self, x):
         X = self._preproc(x)
