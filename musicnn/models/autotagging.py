@@ -34,7 +34,7 @@ class VGGlike2DAutoTagger(STFTInputNetwork):
         # put on some decision (prediction) layers on top of it
         self.P = nn.Sequential(
             nn.Linear(n_hidden, n_hidden),
-            hid_bn(), non_linearity(), _dropout(),
+            self.hid_bn(), non_linearity(), self._dropout(),
             nn.Linear(n_hidden, n_outputs)
         )
 
