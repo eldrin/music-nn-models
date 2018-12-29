@@ -28,7 +28,7 @@ class BaseTrainer(object):
                  learn_rate=0.001, batch_size=128, n_epochs=200,
                  valid_dataset=None, loss_every=100, save_every=10,
                  is_gpu=False, out_root=None, name=None, n_jobs=4,
-                 checkpoint=None):
+                 checkpoint=None, n_valid_batches=1):
         """"""
         self.train_dataset = DataLoader(train_dataset,
                                         batch_size=batch_size,
@@ -47,6 +47,7 @@ class BaseTrainer(object):
         self.is_gpu = is_gpu
         self.loss_every = loss_every  # frequency to write train loss to logger
         self.save_every = save_every  # frequency to save the model
+        self.n_valid_batches = n_valid_batches
 
         if len(list(filter(lambda module: hasattr(module, 'sparse'),
                            self.model.children()))) > 0:
@@ -135,6 +136,18 @@ class BaseTrainer(object):
             for n in trange(self.n_epochs):
                 # self.lr_scheduler.step()
 
+                # evaluation (only calc evaluation loss at the moment)
+                if self.valid_dataset is not None:
+                    self.model.eval()
+                    counter = 0
+                    vloss = 0
+                    for j, batch in enumerate(self.valid_dataset):
+                        vloss += self.partial_eval(batch)
+                        counter += 1
+                        if counter > self.n_valid_batches:
+                            break  # only one batch for efficiency 
+                    self.logger.add_scalar('vloss', vloss.item() / counter, self.iters)
+
                 # training
                 self.model.train()
                 for i, batch in enumerate(self.train_dataset):
@@ -143,14 +156,6 @@ class BaseTrainer(object):
                         # training log
                         self.logger.add_scalar('tloss', tloss.item(), self.iters)
                     self.iters += 1
-
-                # evaluation (only calc evaluation loss at the moment)
-                if self.valid_dataset is not None:
-                    self.model.eval()
-                    for j, batch in enumerate(self.valid_dataset):
-                        vloss = self.partial_eval(batch)
-                        break  # only one batch for efficiency 
-                    self.logger.add_scalar('vloss', vloss.item(), self.iters)
 
                 if self.save_every and (n % self.save_every == 0):
                     self.save(suffix='it{:d}'.format(n))
