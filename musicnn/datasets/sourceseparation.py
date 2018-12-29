@@ -1,3 +1,4 @@
+from os.path import join
 import pkg_resources
 import pickle as pkl
 
@@ -23,6 +24,13 @@ class VocalSeparation(AudioDataset):
                          target=None, crop_len=crop_len,
                          transform=transform, on_mem=on_mem)
 
+        # load targets
+        self.target = {}
+        for fn in self.subset_fns:
+            self.target[fn] = np.load(
+                join(self.songs_root, fn.replace('mixture', 'vocals'))
+            )
+
     def __getitem__(self, idx):
         """"""
         # retrieve the track id from index
@@ -32,7 +40,7 @@ class VocalSeparation(AudioDataset):
         x = self._retrieve_audio(fn)
 
         # retrieve target
-        y = self._retrieve_audio(fn.replace('mixture', 'vocals'))
+        y = self._retrieve_target(fn)
 
         xy = torch.cat([x[None], y[None]], dim=0)
 
@@ -48,3 +56,7 @@ class VocalSeparation(AudioDataset):
             sample = self.transform(sample)
 
         return sample
+
+    def _retrieve_target(self, fn):
+        """"""
+        return self.target[fn]
