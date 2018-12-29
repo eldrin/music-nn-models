@@ -9,7 +9,7 @@ from .layers import VGGlike2DEncoder, VGGlike2DDecoder, Identity
 from .architecture import STFTInputNetwork
 
 
-class VGGlike2DUNetSegmentator(STFTInputNetwork):
+class VGGlike2DUNet(STFTInputNetwork):
     """VGG-like 2D segmentation (learning masking)
     """
     def __init__(self, sig_len=44100, n_hidden=256, n_fft=1024, hop_sz=256,
@@ -35,13 +35,18 @@ class VGGlike2DUNetSegmentator(STFTInputNetwork):
         )
 
         # put decoder on top of it
-        self.iP = nn.Sequential(
+        self.iPv = nn.Sequential(
+            nn.Linear(n_hidden, n_hidden),
+            self.hid_bn(), non_linearity(), self._dropout()
+        )
+        self.iPa = nn.Sequential(
             nn.Linear(n_hidden, n_hidden),
             self.hid_bn(), non_linearity(), self._dropout()
         )
 
         # put decoder for convolution encoders
-        self.D = VGGlike2DDecoder(self.E)
+        self.Dv = VGGlike2DDecoder(self.E)  # for vocals
+        self.Da = VGGlike2DDecoder(self.E)  # for accompaniments
 
     def get_hidden_state(self, x, layer=10):
         return self.E.get_hidden_state(self._preproc(x), layer)
@@ -59,11 +64,12 @@ class VGGlike2DUNetSegmentator(STFTInputNetwork):
             Z.append(z)
         
         # bottleneck
-        z = self.iP(self.P(z))
+        z = self.P(z)
+        zv, za = self.iPv(z), self.iPa(z)
 
         # Decoding
-        for iz, layer in zip(Z[::-1], self.D.decoder):
-            z = layer(z + iz)
-        Xhat = z
+        for iz, layer_v, layer_a in zip(Z[::-1], self.Dv.decoder, self.Da.decoder):
+            zv = layer_v(zv + iz)
+            za = layer_a(za + iz)
 
-        return X, Xhat
+        return zv, za  # input STFT, vocal STFT, accompaniment STFT

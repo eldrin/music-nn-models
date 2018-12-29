@@ -1,10 +1,10 @@
-Clara Berry And Wooldog - Air Traffic_mixture.npy
-Music Delta - Britpop_mixture.npy
-The Long Wait - Back Home To Blue_mixture.npy
-Jokers, Jacks & Kings - Sea Of Leaves_mixture.npy
-Faces On Film - Waiting For Ga_mixture.npy
-Fergessen - The Wind_mixture.npy
-Music Delta - Beatles_mixture.npy
-Leaf - Wicked_mixture.npy
-Johnny Lokke - Promises & Lies_mixture.npy
-Young Griffo - Pennies_mixture.npy
+valid/Clara Berry And Wooldog - Air Traffic_mixture.npy
+valid/Music Delta - Britpop_mixture.npy
+valid/The Long Wait - Back Home To Blue_mixture.npy
+valid/Jokers, Jacks & Kings - Sea Of Leaves_mixture.npy
+valid/Faces On Film - Waiting For Ga_mixture.npy
+valid/Fergessen - The Wind_mixture.npy
+valid/Music Delta - Beatles_mixture.npy
+valid/Leaf - Wicked_mixture.npy
+valid/Johnny Lokke - Promises & Lies_mixture.npy
+valid/Young Griffo - Pennies_mixture.npy

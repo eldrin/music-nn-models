@@ -9,6 +9,7 @@ MSD_LASTFM50_LABEL = 'meta_data/msd_lastfm50_map.pkl'
 MSD_LASTFM50_SPLIT = 'splits/msd_lastfm50_{}_{:d}.txt'
 IRMAS_TRAIN_METADATA = 'meta_data/irmas_train_fn_songid_map.pkl'
 IRMAS_TRAIN_SPLIT = 'splits/irmas_trn_{}_{:d}.txt'
+MUSDB18_SPLIT = 'splits/musdb18_{}_{:d}.txt'
 STANDARD_SCALER_STATS = 'data/dBstft_n1024_h256_standardscaler_stats.npy'
 
 
@@ -17,6 +18,7 @@ __all__ = [
     'msd_lastfm50_splits',
     'irmas_train_metadata',
     'irmas_train_splits',
+    'musdb18_splits',
     'stft_standard_scaler_stats'
 ]
 
@@ -67,9 +69,21 @@ def irmas_train_splits(fold=0, split='train'):
     """Get the splits for msd-lastfm-50
 
     Returns:
-        list: list conatins filenames of {train, valid, test} samples
+        list: list conatins filename of one of {train, valid, test} samples
     """
     assert split in {'train', 'valid', 'test'}
     return pkg_resources.resource_filename(
         __name__, IRMAS_TRAIN_SPLIT.format(split, fold)
+    )
+
+
+def musdb18_splits(fold=0, split='train'):
+    """Get the splits for MUSDB18 dataset (for vocal separation)
+
+    Returns:
+        list: list conatins filename of one of {train, valid, test} samples
+    """
+    assert split in {'train', 'valid', 'test'}
+    return pkg_resources.resource_filename(
+        __name__, MUSDB18_SPLIT.format(split, fold)
     )

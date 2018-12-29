@@ -96,19 +96,24 @@ class AudioDataset(Dataset):
 
 class MuLawDecoding(object):
     """"""
-    def __init__(self, quantization_channels=256):
+    def __init__(self, quantization_channels=256, target_keys=['signal']):
         """"""
+        self.target_keys = set(target_keys)
         self.quantization_channels = quantization_channels
 
     def __call__(self, sample):
         """"""
-        transformed = {
-            'signal':mu_law_decode(
-                sample['signal'],
-                self.quantization_channels
+        transformed = {}
+
+        # transform only target data
+        for key in self.target_keys:
+            transformed[key] = mu_law_decode(
+                sample[key], self.quantization_channels
             ).numpy()
-        }
+
+        # pass other data as they are
         for k, v in sample.items():
-            if k != 'signal':
+            if k not in target_keys:
                 transformed[k] = v
+
         return transformed
