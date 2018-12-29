@@ -19,10 +19,7 @@ class VGGlike2DAutoTagger(STFTInputNetwork):
                  batch_norm=True, dropout=0.5):
         """"""
         super().__init__(sig_len, n_hidden, batch_norm, dropout, n_fft, hop_sz,
-                         magnitude=True, log=True, normalization='sum2one')
-
-        # bn for first layer
-        self.bn0 = nn.BatchNorm1d(n_fft // 2 + 1)
+                         magnitude=True, log=True, normalization='standard')
 
         # initialize the encoder
         self.E = VGGlike2DEncoder(
@@ -38,16 +35,11 @@ class VGGlike2DAutoTagger(STFTInputNetwork):
             nn.Linear(n_hidden, n_outputs)
         )
 
-    def _preproc(self, x):
-        X = super()._preproc(x)
-        X_ = self.bn0(X[:, 0])[:, None]  # input_bn
-        return X_
-
     def get_hidden_state(self, x, layer=10):
         return self.E.get_hidden_state(self._preproc(x), layer)
 
     def get_bottleneck(self, x):
-        return self.E(self._preproc(x))
+        return self.P[:-1](self.E(self._preproc(x)))
 
     def forward(self, x):
         return self.P(self.E(self._preproc(x)))

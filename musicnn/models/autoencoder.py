@@ -19,10 +19,7 @@ class VGGlike2DAutoEncoder(STFTInputNetwork):
                  normalization='standard'):
         """"""
         super().__init__(sig_len, n_hidden, batch_norm, dropout, n_fft, hop_sz,
-                         magnitude=True, log=False, normalization=normalization)
-
-        # bn for first layer
-        self.bn0 = nn.BatchNorm1d(n_fft // 2 + 1)
+                         magnitude=True, log=True, normalization=normalization)
 
         # initialize the encoder
         self.E = VGGlike2DEncoder(
@@ -45,17 +42,12 @@ class VGGlike2DAutoEncoder(STFTInputNetwork):
 
         # put decoder for convolution encoders
         self.D = VGGlike2DDecoder(self.E)
-    
-    def _preproc(self, x):
-        X = super()._preproc(x)
-        X_ = self.bn0(X[:, 0])[:, None]  # input_bn
-        return X_
 
     def get_hidden_state(self, x, layer=10):
         return self.E.get_hidden_state(self._preproc(x), layer)
-    
+
     def get_bottleneck(self, x):
-        return self.E(self._preproc(x))
+        return self.P(self.E(self._preproc(x)))
 
     def forward(self, x):
         X = self._preproc(x)

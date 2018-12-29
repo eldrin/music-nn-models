@@ -9,7 +9,7 @@ MSD_LASTFM50_LABEL = 'meta_data/msd_lastfm50_map.pkl'
 MSD_LASTFM50_SPLIT = 'splits/msd_lastfm50_{}_{:d}.txt'
 IRMAS_TRAIN_METADATA = 'meta_data/irmas_train_fn_songid_map.pkl'
 IRMAS_TRAIN_SPLIT = 'splits/irmas_trn_{}_{:d}.txt'
-STANDARD_SCALER_STATS = 'data/dBstft_standardscaler_stats.npy'
+STANDARD_SCALER_STATS = 'data/dBstft_n1024_h256_standardscaler_stats.npy'
 
 
 __all__ = [

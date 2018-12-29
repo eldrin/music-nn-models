@@ -341,22 +341,41 @@ class Identity(nn.Module):
 
 class STFT(nn.Module):
     """STFT module
+
+    Some part of the code is derived from librosa.power_to_db
+
+    .._librosa.power_to_db
+    https://librosa.github.io/librosa/_modules/librosa/core/spectrum.html#power_to_db
     """
-    def __init__(self, n_fft, hop_sz, magnitude=True, log=True):
+    def __init__(self, n_fft, hop_sz, magnitude=True, log=True,
+                 ref_value=1., eps=1e-10, topdb=80):
         super().__init__()
         self.n_fft = n_fft
         self.hop_sz = hop_sz
         self.magnitude = magnitude
         self.log = log
+        self.eps = torch.tensor([eps]).float()
+        self.topdb = torch.tensor([topdb]).float()
+        self.ref_value = torch.tensor([ref_value]).float()
 
     def _magnitude(self, x):
         return (x[..., 0]**2 + x[..., 1]**2)**0.5
     
     def _log(self, x, eps=1e-8):
-        eps = torch.tensor([eps]).float()
-        if x.is_cuda: eps = eps.cuda()
-        else:         eps = eps.cpu()
-        return torch.log10(torch.max(x, eps))
+        if x.is_cuda:
+            self.eps = self.eps.cuda()
+            self.topdb = self.topdb.cuda()
+            self.ref_value = self.ref_value.cuda()
+
+        # get power
+        power = x**2
+
+        # get log_spec
+        log_spec = 10. * torch.log10(torch.max(power, self.eps))
+        log_spec -= 10. * torch.log10(torch.max(self.ref_value, self.eps))
+        log_spec = torch.max(log_spec, log_spec.max() - self.topdb)
+
+        return log_spec
     
     def forward(self, x):
         X = torch.stft(x, self.n_fft, self.hop_sz)

@@ -85,4 +85,5 @@ class STFTInputNetwork(BaseArchitecture):
         self.input_shape = test_x.numpy().shape  # shape of input STFT
 
     def _preproc(self, x):
+        # magnitude normalization
         return self.sclr(self.stft(x))[:, None]
