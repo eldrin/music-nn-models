@@ -38,12 +38,16 @@ class VGGlike2DAutoTagger(STFTInputNetwork):
             nn.Linear(n_hidden, n_outputs)
         )
 
+    def _preproc(self, x):
+        X = super()._preproc(x)
+        X_ = self.bn0(X[:, 0])[:, None]  # input_bn
+        return X_
+
     def get_hidden_state(self, x, layer=10):
-        X = self._preproc(x)
-        X_ = self.bn0(X[:, 0])[:, None]  # input bn
-        return self.E.get_hidden_state(X_, layer)
+        return self.E.get_hidden_state(self._preproc(x), layer)
+
+    def get_bottleneck(self, x):
+        return self.E(self._preproc(x))
 
     def forward(self, x):
-        X = self._preproc(x)
-        X_ = self.bn0(X[:, 0])[:, None]  # input bn
-        return self.P(self.E(X_))
+        return self.P(self.E(self._preproc(x)))
