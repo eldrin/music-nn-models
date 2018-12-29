@@ -11,7 +11,7 @@ from musicnn.config import Config as cfg
 from musicnn.datasets.audiodataset import MuLawDecoding
 from musicnn.datasets import VocalSeparation
 from musicnn.trainers import SourceSeparationTrainer
-from musicnn.models import VGGlike2DUNet 
+from musicnn.models import VGGlike2DUNet
 
 
 # setup variables
