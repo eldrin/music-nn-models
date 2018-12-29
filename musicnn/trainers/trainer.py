@@ -133,7 +133,7 @@ class BaseTrainer(object):
     def fit(self):
         """"""
         try:
-            for n in trange(self.n_epochs):
+            for n in trange(self.n_epochs, ncols=80):
                 # self.lr_scheduler.step()
 
                 # evaluation (only calc evaluation loss at the moment)
