@@ -3,6 +3,7 @@ import pickle as pkl
 
 import numpy as np
 import pandas as pd
+import torch
 
 from .audiodataset import AudioDataset
 from ..datasets.files import musdb18_splits

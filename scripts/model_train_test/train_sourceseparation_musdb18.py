@@ -27,7 +27,8 @@ transformer = Compose([
     )
 ])
 VocalSeparation_ = partial(
-    VocalSeparation, songs_root=audio_root, fold=fold, transform=transformer
+    VocalSeparation, songs_root=audio_root,
+    fold=fold, transform=transformer, on_mem=True
 )
 train_dataset = VocalSeparation_(split='train')
 valid_dataset = VocalSeparation_(split='valid')
