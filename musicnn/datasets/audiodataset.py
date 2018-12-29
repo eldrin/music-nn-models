@@ -113,7 +113,7 @@ class MuLawDecoding(object):
 
         # pass other data as they are
         for k, v in sample.items():
-            if k not in target_keys:
+            if k not in self.target_keys:
                 transformed[k] = v
 
         return transformed
