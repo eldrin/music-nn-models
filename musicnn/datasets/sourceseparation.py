@@ -4,7 +4,6 @@ import pickle as pkl
 
 import numpy as np
 import pandas as pd
-import torch
 
 from .audiodataset import AudioDataset
 from ..datasets.files import musdb18_splits
@@ -42,7 +41,7 @@ class VocalSeparation(AudioDataset):
         # retrieve target
         y = self._retrieve_target(fn)
 
-        xy = torch.cat([x[None], y[None]], dim=0)
+        xy = np.concatenate([x[None], y[None]], axis=0)
 
         xy_ = np.array(self._crop_signal(xy), dtype=xy.dtype)
 
