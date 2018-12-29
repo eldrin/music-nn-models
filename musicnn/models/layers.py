@@ -355,6 +355,7 @@ class STFT(nn.Module):
     def _log(self, x, eps=1e-8):
         eps = torch.tensor([eps]).float()
         if x.is_cuda: eps = eps.cuda()
+        else:         eps = eps.cpu()
         return torch.log10(torch.max(x, eps))
     
     def forward(self, x):
@@ -397,7 +398,7 @@ class SumToOneNormalization(nn.Module):
         self.eps = torch.tensor([eps])
     
     def forward(self, x):
-        if x.is_cuda:
-            self.eps = self.eps.cuda()
+        if x.is_cuda: self.eps = self.eps.cuda()
+        else:         self.eps = self.eps.cpu()
         x = torch.max(x, self.eps)
         return x / x.sum(self.dim)[:, None]
