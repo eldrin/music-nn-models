@@ -350,13 +350,24 @@ class STFT(nn.Module):
     .._librosa.power_to_db
     https://librosa.github.io/librosa/_modules/librosa/core/spectrum.html#power_to_db
     """
-    def __init__(self, n_fft, hop_sz, magnitude=True, log=True,
+    def __init__(self, n_fft, hop_sz, window=None, magnitude=True, log=True,
                  ref_value=1., eps=1e-10, topdb=80):
         super().__init__()
         self.n_fft = n_fft
         self.hop_sz = hop_sz
         self.magnitude = magnitude
         self.log = log
+        if window is None:
+            self.window = torch.hann_window(n_fft, periodic=False)  # symmetric
+        else:
+            if isinstance(window, np.ndarray):
+                self.window = torch.from_numpy(window)
+            elif isinstance(window, list):
+                self.window = torch.tensor(window)
+            else:
+                ValueError('[ERROR] Window should be vector!')
+
+        self.window = NoGradParameter(self.window.float())
         self.eps = NoGradParameter(torch.tensor([eps]).float())
         self.topdb = NoGradParameter(torch.tensor([topdb]).float())
         self.ref_value = NoGradParameter(torch.tensor([ref_value]).float())
@@ -376,7 +387,7 @@ class STFT(nn.Module):
         return log_spec
     
     def forward(self, x):
-        X = torch.stft(x, self.n_fft, self.hop_sz)
+        X = torch.stft(x, self.n_fft, self.hop_sz, window=self.window)
         if self.magnitude:
             X = self._magnitude(X)
         if self.log:
