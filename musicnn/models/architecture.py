@@ -1,6 +1,7 @@
 import warnings 
 from functools import partial
 
+import librosa
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -79,7 +80,8 @@ class STFTInputNetwork(BaseArchitecture):
         else:  # None case
             self.sclr = Identity()
     
-        self.stft = STFT(n_fft=n_fft, hop_sz=hop_sz,
+        win = librosa.filters.get_window('hann', n_fft, fftbins=False)  # symmetric
+        self.stft = STFT(n_fft=n_fft, hop_sz=hop_sz, window=win,
                          magnitude=self.magnitude, log=self.log)
         test_x = self.stft(torch.randn(sig_len))
         self.input_shape = test_x.numpy().shape  # shape of input STFT

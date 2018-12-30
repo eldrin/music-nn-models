@@ -358,7 +358,7 @@ class STFT(nn.Module):
         self.magnitude = magnitude
         self.log = log
         if window is None:
-            self.window = torch.hann_window(n_fft, periodic=False)  # symmetric
+            self.window = torch.hann_window(n_fft)  # periodic
         else:
             if isinstance(window, np.ndarray):
                 self.window = torch.from_numpy(window)
