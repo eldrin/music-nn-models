@@ -6,6 +6,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+NoGradParameter = partial(nn.Parameter, requires_grad=False)
+
+
 class BaseEncoder(nn.Module):
     """Base encoder class specifying the spec
     """
@@ -354,19 +357,14 @@ class STFT(nn.Module):
         self.hop_sz = hop_sz
         self.magnitude = magnitude
         self.log = log
-        self.eps = torch.tensor([eps]).float()
-        self.topdb = torch.tensor([topdb]).float()
-        self.ref_value = torch.tensor([ref_value]).float()
+        self.eps = NoGradParameter(torch.tensor([eps]).float())
+        self.topdb = NoGradParameter(torch.tensor([topdb]).float())
+        self.ref_value = NoGradParameter(torch.tensor([ref_value]).float())
 
     def _magnitude(self, x):
         return (x[..., 0]**2 + x[..., 1]**2)**0.5
     
     def _log(self, x, eps=1e-8):
-        if x.is_cuda:
-            self.eps = self.eps.cuda()
-            self.topdb = self.topdb.cuda()
-            self.ref_value = self.ref_value.cuda()
-
         # get power
         power = x**2
 
@@ -391,12 +389,8 @@ class StandardScaler(nn.Module):
     """
     def __init__(self, mean, std, eps=1e-10):
         super().__init__()
-        self.mean_ = nn.Parameter(torch.FloatTensor(mean))
-        self.std_ = nn.Parameter(torch.FloatTensor(np.maximum(std, eps)))
-
-        # to make sure these are not learned
-        self.mean_.requires_grad = False
-        self.std_.requires_grad = False
+        self.mean_ = NoGradParameter(torch.FloatTensor(mean))
+        self.std_ = NoGradParameter(torch.FloatTensor(np.maximum(std, eps)))
     
     def forward(self, x):
         if x.dim() == 2:
@@ -414,10 +408,8 @@ class SumToOneNormalization(nn.Module):
     def __init__(self, dim=0, eps=1e-10):
         super().__init__()
         self.dim = dim
-        self.eps = torch.tensor([eps])
+        self.eps = NoGradParameter(torch.tensor([eps]).float())
     
     def forward(self, x):
-        if x.is_cuda: self.eps = self.eps.cuda()
-        else:         self.eps = self.eps.cpu()
         x = torch.max(x, self.eps)
         return x / x.sum(self.dim)[:, None]
