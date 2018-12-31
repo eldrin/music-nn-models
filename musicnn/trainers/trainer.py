@@ -139,14 +139,12 @@ class BaseTrainer(object):
                 # evaluation (only calc evaluation loss at the moment)
                 if self.valid_dataset is not None:
                     self.model.eval()
-                    counter = 0
                     vloss = 0
-                    for j, batch in enumerate(self.valid_dataset):
+                    for counter, batch in enumerate(self.valid_dataset):
                         vloss += self.partial_eval(batch)
-                        counter += 1
-                        if counter > self.n_valid_batches:
+                        if (counter + 1) > self.n_valid_batches:
                             break  # only one batch for efficiency 
-                    self.logger.add_scalar('vloss', vloss.item() / counter, self.iters)
+                    self.logger.add_scalar('vloss', vloss.item() / (counter + 1), self.iters)
 
                 # training
                 self.model.train()
