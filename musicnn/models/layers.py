@@ -19,7 +19,7 @@ class BaseEncoder(nn.Module):
     def get_hidden_state(self, x, layer):
         """"""
         raise NotImplementedError()
-    
+
     def forward(self, x):
         """"""
         raise NotImplementedError()
@@ -35,11 +35,11 @@ class BaseDecoder(nn.Module):
         """"""
         super().__init__()
         self._build_decoder(encoder)
-    
+
     def _build_decoder(self, encoder):
         """"""
         raise NotImplementedError()
-    
+
     def forward(self, z):
         """"""
         raise NotImplementedError()
@@ -87,7 +87,7 @@ class VGGlike2DEncoder(BaseEncoder):
                     pooling, pool_size, non_linearity, batch_norm
                 )
             )
-            encoder_ = nn.Sequential(*self.conv_layers)   
+            encoder_ = nn.Sequential(*self.conv_layers)
             z = encoder_(test_x)
 
             # update # of input channels
@@ -119,7 +119,7 @@ class VGGlike2DEncoder(BaseEncoder):
         for layer in self.encoder[:layer]:
             z = layer(z)
         return z
-    
+
     def forward(self, X):
         # check the size
         assert X.shape[1:] == (1, self.input_shape[0], self.input_shape[1])
@@ -212,7 +212,7 @@ class ConvBlock2D(nn.Module):
         self.convs = nn.Sequential(*convs)
         self.pool = pooling(pool_size)
         self.non_linearity = non_linearity()
-    
+
     def forward(self, x):
         return self.pool(self.non_linearity(self.convs(x)))
 
@@ -301,7 +301,7 @@ class GlobalAveragePooling(nn.Module):
     def __init__(self):
         super().__init__()
         self.flatten = Flattening()
-    
+
     def forward(self, x):
         return self.flatten(x).mean(dim=-1)
 
@@ -311,14 +311,14 @@ class Flattening(nn.Module):
     """
     def __init__(self):
         super().__init__()
-    
+
     def forward(self, x):
         return x.view(x.shape[0], x.shape[1], -1)
 
 
 class UnFlattening(nn.Module):
     """Un-Flatten input based on the original shape
-    
+
     Args:
         original_shape (torch.Size): target output shape. number of element
                                      should be same to the input tensor
@@ -326,7 +326,7 @@ class UnFlattening(nn.Module):
     def __init__(self, original_shape):
         super().__init__()
         self.original_shape = original_shape
-    
+
     def forward(self, x):
         # sanity check
         return x.view(x.shape[0], *self.original_shape)
@@ -374,7 +374,7 @@ class STFT(nn.Module):
 
     def _magnitude(self, x):
         return (x[..., 0]**2 + x[..., 1]**2)**0.5
-    
+
     def _log(self, x, eps=1e-8):
         # get power
         power = x**2
@@ -385,7 +385,11 @@ class STFT(nn.Module):
         log_spec = torch.max(log_spec, log_spec.max() - self.topdb)
 
         return log_spec
-    
+
+    def _inv_log(self, log_spec):
+        return (self.ref_value * torch.pow(10., 0.1 * log_spec))**0.5
+
+
     def forward(self, x):
         X = torch.stft(x, self.n_fft, self.hop_sz, window=self.window)
         if self.magnitude:
@@ -402,7 +406,7 @@ class StandardScaler(nn.Module):
         super().__init__()
         self.mean_ = NoGradParameter(torch.FloatTensor(mean))
         self.std_ = NoGradParameter(torch.FloatTensor(np.maximum(std, eps)))
-    
+
     def forward(self, x):
         if x.dim() == 2:
             return (x - self.mean_[None]) / self.std_[None]
@@ -430,7 +434,7 @@ class SumToOneNormalization(nn.Module):
         super().__init__()
         self.dim = dim
         self.eps = NoGradParameter(torch.tensor([eps]).float())
-    
+
     def forward(self, x):
         x = torch.max(x, self.eps)
         return x / x.sum(self.dim)[:, None]

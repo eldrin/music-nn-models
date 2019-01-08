@@ -6,8 +6,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as f
 
-from .layers import VGGlike2DEncoder, VGGlike2DDecoder, Identity
+from .layers import VGGlike2DEncoder, VGGlike2DDecoder, Identity, STFT
 from .architecture import STFTInputNetwork
+from ..config import Config as cfg
 
 
 class VGGlike2DUNet(STFTInputNetwork):
@@ -56,8 +57,11 @@ class VGGlike2DUNet(STFTInputNetwork):
         return self.P(self.E(self._preproc(x)))
 
     def _preproc(self, x):
-        X = self.stft(x)
-        Z = self.sclr(X)[:, None]
+        X = torch.stft(x, self.stft.n_fft, self.stft.hop_sz,
+                       window=self.stft.window)
+        X = self.stft._magnitude(X)
+
+        Z = self.sclr(self.stft._log(X))[:, None]
         return Z, X[:, None]
 
     def forward(self, x):
@@ -68,7 +72,7 @@ class VGGlike2DUNet(STFTInputNetwork):
         for layer in self.E.encoder:
             z = layer(z)
             Z.append(z)
-        
+
         # bottleneck
         z = self.P(z)
         zv = self.iPv(z)
@@ -107,7 +111,7 @@ class VGGlike2DUNet(STFTInputNetwork):
         if Xm.is_cuda:
             Xm = Xm.data.cpu().numpy()  # also remove channel dim
         else:
-            Xm = Xm.data.numpy()        
+            Xm = Xm.data.numpy()
 
         # to amplitude
         Xm = librosa.db_to_amplitude(Xm)

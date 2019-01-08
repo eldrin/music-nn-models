@@ -79,7 +79,7 @@ class STFTInputNetwork(BaseArchitecture):
             self.sclr = SumToOneNormalization(dim=1)
         else:  # None case
             self.sclr = Identity()
-    
+
         win = librosa.filters.get_window('hann', n_fft, fftbins=False)  # symmetric
         self.stft = STFT(n_fft=n_fft, hop_sz=hop_sz, window=win,
                          magnitude=self.magnitude, log=self.log)
