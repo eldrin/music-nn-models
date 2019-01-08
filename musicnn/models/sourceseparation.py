@@ -55,11 +55,16 @@ class VGGlike2DUNet(STFTInputNetwork):
     def get_bottleneck(self, x):
         return self.P(self.E(self._preproc(x)))
 
+    def _preproc(self, x):
+        X = self.stft(x)
+        Z = self.sclr(X)[:, None]
+        return Z, X[:, None]
+
     def forward(self, x):
         Z = []  # for skip-connection
 
         # Encoding
-        z = X = self._preproc(x)
+        z, X = self._preproc(x)  # scaled / not scaled
         for layer in self.E.encoder:
             z = layer(z)
             Z.append(z)
@@ -78,7 +83,8 @@ class VGGlike2DUNet(STFTInputNetwork):
 
         for iz, layer_v in zip(Z[::-1], self.Dv.decoder):
             zv = layer_v(zv + iz)
-        return zv, X  # vocal mask logit STFT, input STFT
+
+        return torch.sigmoid(zv) * X
 
     def _post_process(self, Xm, Xp=None):
         """Inverse magnitude to signal
