@@ -412,6 +412,16 @@ class StandardScaler(nn.Module):
             raise ValueError('[ERROR] only 2 to 3 dimensional \
                               input is supported!')
 
+    def inverse_transform(self, z):
+        if z.dim() == 2:
+            return (z * self.std_[None]) + self.mean_[None]
+        elif z.dim() == 3:
+            return (z * self.std_[None, :, None]) + self.mean_[None, :, None]
+        else:
+            raise ValueError('[ERROR] only 2 to 3 dimensional \
+                              input is supported!')
+
+
 
 class SumToOneNormalization(nn.Module):
     """Normalization divided by the sum of vectors

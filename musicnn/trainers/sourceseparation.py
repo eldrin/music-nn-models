@@ -40,12 +40,14 @@ class SourceSeparationTrainer(BaseTrainer):
 
         # transform data
         Yv = self.model._preproc(Y)
-        Ya = self.model._preproc(X - Y)
 
         # prediction
-        Yv_, Ya_ = self.model(X)  # logit
+        Ov, S = self.model(X)  # vocal mask logit, input STFT
+        Mv = torch.sigmoid(Ov)  # vocal mask
+        Yv_ = Mv * S
 
         # calc loss
-        l = self.loss(Yv, Yv_) + self.loss(Ya, Ya_)
+        # l = self.loss(Yv, Yv_) + self.loss(Ya, Ya_)
+        l = self.loss(Yv, Yv_)
 
         return l

@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.metrics import roc_auc_score
+from museval.metrics import bss_eval
 
 
 def convert_score_mats_to_pred_list(y_true, y_score, k):

@@ -1,6 +1,7 @@
 from functools import partial
 
 import numpy as np
+import librosa
 import torch
 import torch.nn as nn
 import torch.nn.functional as f
@@ -39,14 +40,14 @@ class VGGlike2DUNet(STFTInputNetwork):
             nn.Linear(n_hidden, n_hidden),
             self.hid_bn(), non_linearity(), self._dropout()
         )
-        self.iPa = nn.Sequential(
-            nn.Linear(n_hidden, n_hidden),
-            self.hid_bn(), non_linearity(), self._dropout()
-        )
+        # self.iPa = nn.Sequential(
+        #     nn.Linear(n_hidden, n_hidden),
+        #     self.hid_bn(), non_linearity(), self._dropout()
+        # )
 
         # put decoder for convolution encoders
         self.Dv = VGGlike2DDecoder(self.E)  # for vocals
-        self.Da = VGGlike2DDecoder(self.E)  # for accompaniments
+        # self.Da = VGGlike2DDecoder(self.E)  # for accompaniments
 
     def get_hidden_state(self, x, layer=10):
         return self.E.get_hidden_state(self._preproc(x), layer)
@@ -65,11 +66,47 @@ class VGGlike2DUNet(STFTInputNetwork):
         
         # bottleneck
         z = self.P(z)
-        zv, za = self.iPv(z), self.iPa(z)
+        zv = self.iPv(z)
+        # zv, za = self.iPv(z), self.iPa(z)
 
         # Decoding
-        for iz, layer_v, layer_a in zip(Z[::-1], self.Dv.decoder, self.Da.decoder):
-            zv = layer_v(zv + iz)
-            za = layer_a(za + iz)
+        # for iz, layer_v, layer_a in zip(Z[::-1], self.Dv.decoder, self.Da.decoder):
+        #     zv = layer_v(zv + iz)
+        #     za = layer_a(za + iz)
 
-        return zv, za  # input STFT, vocal STFT, accompaniment STFT
+        # return zv, za  # input STFT, vocal STFT, accompaniment STFT
+
+        for iz, layer_v in zip(Z[::-1], self.Dv.decoder):
+            zv = layer_v(zv + iz)
+        return zv, X  # vocal mask logit STFT, input STFT
+
+    def _post_process(self, Xm, Xp=None):
+        """Inverse magnitude to signal
+
+        NOTE: currently only support where original phase is provided
+
+        Args:
+            Xm (tensor): db-scale magnitude (output of forward of this model)
+            Xp (numpy.ndarray): original phase
+
+        Returns:
+            x (numpy.ndarray): time-domain signal
+        """
+        assert Xp is not None
+
+        # inverse scaling
+        Xm = self.sclr.inverse_transform(Xm[:, 0])
+
+        # to array
+        if Xm.is_cuda:
+            Xm = Xm.data.cpu().numpy()  # also remove channel dim
+        else:
+            Xm = Xm.data.numpy()        
+
+        # to amplitude
+        Xm = librosa.db_to_amplitude(Xm)
+
+        # to signal (n_batch, sig_len)
+        x = np.array([librosa.istft(X) for X in Xm * np.exp(1j * Xp)])
+
+        return x
