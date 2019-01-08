@@ -47,6 +47,6 @@ class SourceSeparationTrainer(BaseTrainer):
 
         # calc loss
         # l = self.loss(Yv, Yv_) + self.loss(Ya, Ya_)
-        l = self.loss(Yv, Yv_)
+        l = self.loss(Yv_, Yv)
 
         return l
