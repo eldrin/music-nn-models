@@ -46,7 +46,7 @@ class SourceSeparationTrainer(BaseTrainer):
         Yv_ = self.model(X)  # vocal mask logit, input STFT
 
         # calc loss
-        # l = self.loss(Yv, Yv_) + self.loss(Ya, Ya_)
+        # l = self.loss(Yv_, Yv) + self.loss(Ya_, Ya)
         l = self.loss(Yv_, Yv)
 
         return l
