@@ -15,13 +15,15 @@ class VGGlike2DUNet(STFTInputNetwork):
     """VGG-like 2D segmentation (learning masking)
     """
     def __init__(self, sig_len=44100, n_hidden=256, n_fft=1024, hop_sz=256,
-                 layer1_channels=8, kernel_size=3, n_convs=1,
+                 layer1_channels=8, kernel_size=3, n_convs=1, skip_conn=True,
                  pooling=nn.MaxPool2d, pool_size=2, non_linearity=nn.ReLU,
                  global_average_pooling=True, batch_norm=True, dropout=0.5,
                  normalization='standard'):
         """"""
         super().__init__(sig_len, n_hidden, batch_norm, dropout, n_fft, hop_sz,
                          magnitude=True, log=True, normalization=normalization)
+
+        self.skip_conn = skip_conn
 
         # initialize the encoder
         self.E = VGGlike2DEncoder(
@@ -41,14 +43,9 @@ class VGGlike2DUNet(STFTInputNetwork):
             nn.Linear(n_hidden, n_hidden),
             self.hid_bn(), non_linearity(), self._dropout()
         )
-        # self.iPa = nn.Sequential(
-        #     nn.Linear(n_hidden, n_hidden),
-        #     self.hid_bn(), non_linearity(), self._dropout()
-        # )
 
         # put decoder for convolution encoders
         self.Dv = VGGlike2DDecoder(self.E)  # for vocals
-        # self.Da = VGGlike2DDecoder(self.E)  # for accompaniments
 
     def get_hidden_state(self, x, layer=10):
         return self.E.get_hidden_state(self._preproc(x), layer)
@@ -74,17 +71,13 @@ class VGGlike2DUNet(STFTInputNetwork):
         # bottleneck
         z = self.P(z)
         zv = self.iPv(z)
-        # zv, za = self.iPv(z), self.iPa(z)
 
         # Decoding
-        # for iz, layer_v, layer_a in zip(Z[::-1], self.Dv.decoder, self.Da.decoder):
-        #     zv = layer_v(zv + iz)
-        #     za = layer_a(za + iz)
-
-        # return zv, za  # input STFT, vocal STFT, accompaniment STFT
-
         for iz, layer_v in zip(Z[::-1], self.Dv.decoder):
-            zv = layer_v(zv + iz)
+            if self.skip_conn:
+                zv = layer_v(zv + iz)
+            else:
+                zv = layer_v(zv)
 
         return torch.sigmoid(zv)
 
@@ -111,20 +104,13 @@ class VGGlike2DUNet(STFTInputNetwork):
         """
         assert Xp is not None
 
-        # # inverse scaling
-        # Xm = self.sclr.inverse_transform(Xm[:, 0])
-        Xm = Xm[:, 0]  # drop channel dim
-
         # to array
         if Xm.is_cuda:
             Xm = Xm.data.cpu().numpy()  # also remove channel dim
         else:
             Xm = Xm.data.numpy()
 
-        # # to amplitude
-        # Xm = librosa.db_to_amplitude(Xm)
-
         # to signal (n_batch, sig_len)
-        x = np.array([librosa.istft(X) for X in Xm * np.exp(1j * Xp)])
+        x = np.array([librosa.istft(X) for X in Xm[0] * np.exp(1j * Xp)])
 
         return x
