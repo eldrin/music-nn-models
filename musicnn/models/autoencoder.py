@@ -25,7 +25,7 @@ class VGGlike2DAutoEncoder(STFTInputNetwork):
         self.E = VGGlike2DEncoder(
             self.input_shape, n_hidden, n_convs, layer1_channels,
             kernel_size, pooling, pool_size, non_linearity,
-            global_average_pooling, batch_norm
+            global_average_pooling, batch_norm, rtn_pool_idx=True
         )
 
         # put on some decision (prediction) layers on top of it
@@ -51,5 +51,6 @@ class VGGlike2DAutoEncoder(STFTInputNetwork):
 
     def forward(self, x):
         X = self._preproc(x)
-        Xhat = self.D(self.iP(self.P(self.E(X))))
+        z, pool_idx = self.E(X)
+        Xhat = self.D(self.iP(self.P(z)), pool_idx)
         return X, Xhat

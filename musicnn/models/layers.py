@@ -63,13 +63,14 @@ class VGGlike2DEncoder(BaseEncoder):
     def __init__(self, input_shape=(256, 512), n_hidden=256, n_convs=1,
                  layer1_channels=8, kernel_size=3, pooling=nn.MaxPool2d,
                  pool_size=2, non_linearity=nn.ReLU, global_average_pooling=True,
-                 batch_norm=True):
+                 batch_norm=True, rtn_pool_idx=False):
         """"""
         super().__init__()
 
         self.input_shape = input_shape
         self.n_hidden = n_hidden
         self.pooling_layer = pooling
+
         self.non_linearity = non_linearity
         self.global_average_pooling = global_average_pooling
         self.conv_layers = []
@@ -84,11 +85,13 @@ class VGGlike2DEncoder(BaseEncoder):
             self.conv_layers.append(
                 ConvBlock2D(
                     n_convs, in_chan, out_chan, kernel_size,
-                    pooling, pool_size, non_linearity, batch_norm
+                    pooling, pool_size, non_linearity, batch_norm,
+                    rtn_pool_idx=rtn_pool_idx
                 )
             )
-            encoder_ = nn.Sequential(*self.conv_layers)
-            z = encoder_(test_x)
+            z = test_x
+            for layer in self.conv_layers:
+                z, _ = layer(z)
 
             # update # of input channels
             if out_chan < n_hidden:
@@ -117,16 +120,19 @@ class VGGlike2DEncoder(BaseEncoder):
     def get_hidden_state(self, X, layer=10):
         z = X
         for layer in self.encoder[:layer]:
-            z = layer(z)
+            z, _ = layer(z)
         return z
 
     def forward(self, X):
         # check the size
         assert X.shape[1:] == (1, self.input_shape[0], self.input_shape[1])
         z = X
-        for layer in self.encoder:
-            z = layer(z)
-        return z
+        pool_idx = []
+        for layer in self.encoder[:-1]:
+            z, idx = layer(z)
+            pool_idx.append(idx)
+        z = self.encoder[-1](z)
+        return z, pool_idx
 
 
 class VGGlike2DDecoder(BaseDecoder):
@@ -163,21 +169,21 @@ class VGGlike2DDecoder(BaseDecoder):
                     batch_norm = layer.batch_norm
 
                 target_shape = test_x.shape[2:]  # only spatial dimension
-                test_x = layer(test_x)
+                test_x, _ = layer(test_x)
 
                 decoder.append(TransposedConvBlock2D(
                     layer.n_convs, layer.out_channels, layer.in_channels,
-                    layer.kernel_size, layer.pooling, target_shape,
-                    non_lin, batch_norm
+                    layer.kernel_size, layer.pooling,
+                    layer.pool_size, target_shape, non_lin, batch_norm
                 ))
 
         self.decoder = nn.ModuleList(decoder[::-1])
 
-    def forward(self, z):
+    def forward(self, z, pool_idx):
         """"""
-        X = z
-        for layer in self.decoder:
-            X = layer(X)
+        X = self.decoder[0](z)  # unflattening
+        for layer, idx in zip(self.decoder[1:], pool_idx[::-1]):
+            X = layer(X, idx)
         return X
 
 
@@ -187,7 +193,8 @@ class ConvBlock2D(nn.Module):
     Optionally, can have multiple conv layers and batch_norm / dropout layers
     """
     def __init__(self, n_convs, in_channels, out_channels, kernel_size,
-                 pooling, pool_size, non_linearity, batch_norm):
+                 pooling, pool_size, non_linearity, batch_norm,
+                 rtn_pool_idx=False):
         """"""
         super().__init__()
         self.n_convs = n_convs
@@ -196,6 +203,7 @@ class ConvBlock2D(nn.Module):
         self.kernel_size = kernel_size
         self.pooling = pooling
         self.pool_size = pool_size
+        self.rtn_pool_idx = rtn_pool_idx
         self.batch_norm = batch_norm
 
         convs = []
@@ -210,18 +218,31 @@ class ConvBlock2D(nn.Module):
                            batch_norm=batch_norm)
             )
         self.convs = nn.Sequential(*convs)
-        self.pool = pooling(pool_size)
+        if pooling == nn.MaxPool2d:
+            if not self.rtn_pool_idx:
+                print('[Warning] with max-pooling, index should be returned,',
+                      'setting is changed accordingly...')
+                self.rtn_pool_idx = True
+            self.pool = pooling(pool_size, return_indices=self.rtn_pool_idx)
+        else:
+            self.pool = pooling(pool_size)
         self.non_linearity = non_linearity()
 
     def forward(self, x):
-        return self.pool(self.non_linearity(self.convs(x)))
+        z = self.non_linearity(self.convs(x))
 
+        if self.rtn_pool_idx:
+            out, ind = self.pool(z)
+        else:
+            out, ind = self.pool(z), None
+
+        return out, ind
 
 class TransposedConvBlock2D(nn.Module):
     """Transposed ConvBlock2D for building decoder
     """
     def __init__(self, n_convs, in_channels, out_channels, kernel_size,
-                 pooling, pool_size, non_linearity, batch_norm):
+                 pooling, pool_scale, pool_size, non_linearity, batch_norm):
         """"""
         super().__init__()
         self.n_convs = n_convs
@@ -229,6 +250,7 @@ class TransposedConvBlock2D(nn.Module):
         self.out_channels = out_channels
         self.kernel_size = kernel_size
         self.pooling = pooling
+        self.pool_scale = pool_scale
         self.pool_size = pool_size
         self.batch_norm = batch_norm
 
@@ -244,13 +266,33 @@ class TransposedConvBlock2D(nn.Module):
                            batch_norm=batch_norm)
             )
         self.convs = nn.Sequential(*convs)
-        self.unpool = partial(F.interpolate,
-                              size=pool_size, mode='bilinear', align_corners=True)
+        if pooling == nn.MaxPool2d:
+            self.unpool = nn.MaxUnpool2d(self.pool_scale)
+        elif pooling == nn.AvgPool2d:
+            self.unpool = partial(F.interpolate,
+                                  size=pool_size,
+                                  mode='bilinear',
+                                  align_corners=True)
+        else:
+            raise ValueError('[ERROR] only MaxPool2d and AvgPool2d is supported!')
+
         self.non_linearity = non_linearity()
 
-    def forward(self, x):
+    def forward(self, x, pool_idx=None):
         """"""
-        return self.non_linearity(self.convs(self.unpool(x)))
+        if pool_idx is None:
+            if isinstance(self.unpool, nn.MaxUnpool2d):
+                raise ValueError(
+                    '[ERROR] with MaxUnpool, pool index should be provided'
+                )
+            else:
+                self.non_linearity(self.convs(self.unpool(x)))
+        else:
+            return self.non_linearity(
+                self.convs(
+                    self.unpool(x, pool_idx, output_size=self.pool_size)
+                )
+            )
 
 
 class SameConv2D(nn.Module):

@@ -29,7 +29,7 @@ class VGGlike2DUNet(STFTInputNetwork):
         self.E = VGGlike2DEncoder(
             self.input_shape, n_hidden, n_convs, layer1_channels,
             kernel_size, pooling, pool_size, non_linearity,
-            global_average_pooling, batch_norm
+            global_average_pooling, batch_norm, rtn_pool_idx=True
         )
 
         # put on some decision (prediction) layers on top of it
@@ -64,20 +64,24 @@ class VGGlike2DUNet(STFTInputNetwork):
     def get_mask(self, X, z):
         Z = []  # for skip-connection
 
-        for layer in self.E.encoder:
-            z = layer(z)
+        pool_idx = []
+        for layer in self.E.encoder[:-1]:
+            z, idx = layer(z)
             Z.append(z)
+            pool_idx.append(idx)
+        z = self.E.encoder[-1](z)
 
         # bottleneck
         z = self.P(z)
         zv = self.iPv(z)
 
         # Decoding
-        for iz, layer_v in zip(Z[::-1], self.Dv.decoder):
+        zv = self.Dv.decoder[0](zv)
+        for iz, idx, layer_v in zip(Z[::-1], pool_idx[::-1], self.Dv.decoder[1:]):
             if self.skip_conn:
-                zv = layer_v(zv + iz)
+                zv = layer_v(zv + iz, idx)
             else:
-                zv = layer_v(zv)
+                zv = layer_v(zv, idx)
 
         return torch.sigmoid(zv)
 
