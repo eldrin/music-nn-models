@@ -59,7 +59,7 @@ class VGGlike2DUNet(STFTInputNetwork):
         X = self.stft._magnitude(X)
 
         Z = self.sclr(self.stft._log(X))[:, None]
-        return Z, X[:, None]
+        return X[:, None], Z
 
     def get_mask(self, X, z):
         Z = []  # for skip-connection
@@ -83,7 +83,7 @@ class VGGlike2DUNet(STFTInputNetwork):
 
     def forward(self, x):
         # preprocessing
-        z, X = self._preproc(x)  # scaled / not scaled
+        X, z = self._preproc(x)  # scaled / not scaled
 
         # get mask
         M = self.get_mask(X, z)
