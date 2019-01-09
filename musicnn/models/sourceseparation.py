@@ -64,11 +64,9 @@ class VGGlike2DUNet(STFTInputNetwork):
         Z = self.sclr(self.stft._log(X))[:, None]
         return Z, X[:, None]
 
-    def forward(self, x):
+    def get_mask(self, X, z):
         Z = []  # for skip-connection
 
-        # Encoding
-        z, X = self._preproc(x)  # scaled / not scaled
         for layer in self.E.encoder:
             z = layer(z)
             Z.append(z)
@@ -88,7 +86,16 @@ class VGGlike2DUNet(STFTInputNetwork):
         for iz, layer_v in zip(Z[::-1], self.Dv.decoder):
             zv = layer_v(zv + iz)
 
-        return torch.sigmoid(zv) * X
+        return torch.sigmoid(zv)
+
+    def forward(self, x):
+        # preprocessing
+        z, X = self._preproc(x)  # scaled / not scaled
+
+        # get mask
+        M = self.get_mask(X, z)
+
+        return M * X
 
     def _post_process(self, Xm, Xp=None):
         """Inverse magnitude to signal
@@ -104,8 +111,9 @@ class VGGlike2DUNet(STFTInputNetwork):
         """
         assert Xp is not None
 
-        # inverse scaling
-        Xm = self.sclr.inverse_transform(Xm[:, 0])
+        # # inverse scaling
+        # Xm = self.sclr.inverse_transform(Xm[:, 0])
+        Xm = Xm[:, 0]  # drop channel dim
 
         # to array
         if Xm.is_cuda:
@@ -113,8 +121,8 @@ class VGGlike2DUNet(STFTInputNetwork):
         else:
             Xm = Xm.data.numpy()
 
-        # to amplitude
-        Xm = librosa.db_to_amplitude(Xm)
+        # # to amplitude
+        # Xm = librosa.db_to_amplitude(Xm)
 
         # to signal (n_batch, sig_len)
         x = np.array([librosa.istft(X) for X in Xm * np.exp(1j * Xp)])
