@@ -47,7 +47,9 @@ class VGGlike2DAutoEncoder(STFTInputNetwork):
         return self.E.get_hidden_state(self._preproc(x), layer)
 
     def get_bottleneck(self, x):
-        return self.P(self.E(self._preproc(x)))
+        X = self._preproc(x)
+        z, _ = self.E(X)
+        return self.P(z)
 
     def forward(self, x):
         X = self._preproc(x)

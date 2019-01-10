@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as f
 
-from .layers import VGGlike2DEncoder, VGGlike2DDecoder, Identity, STFT
+from .layers import VGGlike2DEncoder, VGGlike2DDecoder, Identity, STFT, SameConv2D
 from .architecture import STFTInputNetwork
 from ..config import Config as cfg
 
@@ -61,7 +61,7 @@ class VGGlike2DUNet(STFTInputNetwork):
         Z = self.sclr(self.stft._log(X))[:, None]
         return X[:, None], Z
 
-    def get_mask(self, X, z):
+    def get_mask(self, z):
         Z = []  # for skip-connection
 
         pool_idx = []
@@ -90,7 +90,7 @@ class VGGlike2DUNet(STFTInputNetwork):
         X, z = self._preproc(x)  # scaled / not scaled
 
         # get mask
-        M = self.get_mask(X, z)
+        M = self.get_mask(z)
 
         return M * X
 

@@ -40,7 +40,7 @@ class SourceSeparationTrainer(BaseTrainer):
 
         # transform data
         # Yv = self.model._preproc(Y)
-        _, Yv = self.model._preproc(Y)
+        Yv, _ = self.model._preproc(Y)
 
         # prediction
         Yv_ = self.model(X)  # vocal mask logit, input STFT
