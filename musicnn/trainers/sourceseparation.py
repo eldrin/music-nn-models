@@ -45,10 +45,11 @@ class SourceSeparationTrainer(BaseTrainer):
         # transform data
         # Yv = self.model._preproc(Y)
         Yv, _ = self.model._preproc(Y)
+        Yv /= (Yv.max() + 1e-10)
 
         # prediction
         X, z = self.model._preproc(X)  # scaled / not scaled
-        X /= X.max()  # to normalize it within [0, 1]
+        X /= (X.max() + 1e-10)  # to normalize it within [0, 1]
 
         # get mask
         M = self.model.get_mask(z)
