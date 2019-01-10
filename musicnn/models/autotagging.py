@@ -25,7 +25,7 @@ class VGGlike2DAutoTagger(STFTInputNetwork):
         self.E = VGGlike2DEncoder(
             self.input_shape, n_hidden, n_convs, layer1_channels,
             kernel_size, pooling, pool_size, non_linearity,
-            global_average_pooling, batch_norm
+            global_average_pooling, batch_norm, rtn_pool_idx=True
         )
 
         # put on some decision (prediction) layers on top of it
@@ -39,7 +39,11 @@ class VGGlike2DAutoTagger(STFTInputNetwork):
         return self.E.get_hidden_state(self._preproc(x), layer)
 
     def get_bottleneck(self, x):
-        return self.P[:-1](self.E(self._preproc(x)))
+        X = self._preproc(x)
+        z, _ = self.E(X)
+        return self.P[:-1](z)
 
     def forward(self, x):
-        return self.P(self.E(self._preproc(x)))
+        X = self._preproc(x)
+        z, _ = self.E(X)
+        return self.P(z)
