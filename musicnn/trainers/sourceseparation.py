@@ -39,15 +39,25 @@ class SourceSeparationTrainer(BaseTrainer):
         """"""
         (X, Y) = data  # signal
 
+        # get acompaniment
+        Ya, _ = self.model._preproc(X - Y)
+
         # transform data
         # Yv = self.model._preproc(Y)
         Yv, _ = self.model._preproc(Y)
 
         # prediction
-        Yv_ = self.model(X)  # vocal mask logit, input STFT
+        X, z = self.model._preproc(X)  # scaled / not scaled
+
+        # get mask
+        M = self.model.get_mask(z)
+
+        # get estmations
+        Yv_, Ya_ = M * X, (1 - M) * X
+        # Y_ = Yv_ + Ya_
 
         # calc loss
         # l = self.loss(Yv_, Yv) + self.loss(Ya_, Ya)
-        l = self.loss(Yv_, Yv)
+        l = self.loss(Yv_, Yv) + self.loss(Ya_, Ya)
 
         return l
