@@ -17,8 +17,8 @@ class SourceSeparationTrainer(BaseTrainer):
             n_epochs, valid_dataset, loss_every, save_every,
             is_gpu, out_root, name, n_jobs, checkpoint, n_valid_batches
         )
-        self.loss = nn.MSELoss()
-        # self.loss = nn.L1Loss()
+        # self.loss = nn.MSELoss()
+        self.loss = nn.L1Loss()
         print('GPU training:', self.is_gpu)
 
     def _parse_data(self, batch):
