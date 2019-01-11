@@ -51,7 +51,16 @@ class VGGlike2DUNet(STFTInputNetwork):
         return self.E.get_hidden_state(self._preproc(x), layer)
 
     def get_bottleneck(self, x):
-        return self.P(self.E(self._preproc(x)))
+        # preprocessing
+        _, z = self._preproc(x)  # scaled / not scaled
+
+        for layer in self.E.encoder[:-1]:
+            z, _ = layer(z)
+        z = self.E.encoder[-1](z)
+
+        # bottleneck
+        z = self.P(z)
+        return z
 
     def _preproc(self, x):
         X = torch.stft(x, self.stft.n_fft, self.stft.hop_sz,
