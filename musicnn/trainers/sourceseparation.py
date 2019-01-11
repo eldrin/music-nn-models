@@ -40,27 +40,25 @@ class SourceSeparationTrainer(BaseTrainer):
         (X, Y) = data  # signal
 
         # # get acompaniment
-        # Ya, _ = self.model._preproc(X - Y)
+        Ya, _ = self.model._preproc(X - Y)
 
         # transform data
         # Yv = self.model._preproc(Y)
         Yv, _ = self.model._preproc(Y)
-        Yv /= (Yv.max() + 1e-10)
 
         # prediction
         X, z = self.model._preproc(X)  # scaled / not scaled
-        X /= (X.max() + 1e-10)  # to normalize it within [0, 1]
 
         # get mask
         M = self.model.get_mask(z)
 
         # # get estmations
-        Yv_ = M * X
-        # Yv_, Ya_ = M * X, (1 - M) * X
+        # Yv_ = M * X
+        Yv_, Ya_ = M * X, (1 - M) * X
         # Y_ = Yv_ + Ya_
 
         # calc loss
-        l = self.loss(Yv_, Yv)
-        # l = self.loss(Yv_, Yv) + self.loss(Ya_, Ya)
+        # l = self.loss(Yv_, Yv)
+        l = self.loss(Yv_, Yv) + self.loss(Ya_, Ya)
 
         return l
