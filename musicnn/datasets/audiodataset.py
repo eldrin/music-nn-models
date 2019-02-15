@@ -17,8 +17,8 @@ from ..utils.ops import mu_law_decode
 
 class AudioDataset(Dataset):
     """"""
-    def __init__(self, songs_root, subset_info, target=None,
-                 crop_len=44100, transform=None, on_mem=False):
+    def __init__(self, songs_root, subset_info, target=None, crop_len=44100,
+                 transform=None, on_mem=False, sampling=None):
         """"""
         super().__init__()
 
@@ -29,6 +29,13 @@ class AudioDataset(Dataset):
         self.transform = transform
         self.target = target
         self.on_mem = on_mem
+        self.sampling = sampling
+
+        # if set, draw subsamples with given ratio [0, 1]
+        if sampling is not None:
+            n_samples = int(len(self.subset_fns) * sampling)
+            random.shuffle(self.subset_fns)
+            self.subset_fns = self.subset_fns[:n_samples]
 
         if self.on_mem:
             print('Loading audio to the memory!...')

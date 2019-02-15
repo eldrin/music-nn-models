@@ -15,14 +15,14 @@ class MSDAudio(AudioDataset):
 
     NOTE: it shares with same fold with MSD-LastFM50 dataset
     """
-    def __init__(self, songs_root, split='train', fold=0,
-                 crop_len=44100, transform=None, on_mem=False):
+    def __init__(self, songs_root, split='train', fold=0, crop_len=44100,
+                 transform=None, on_mem=False, sampling=None):
         """"""
         split_info = msd_lastfm50_splits(fold, split)
 
         # call super class' constructor
-        super().__init__(songs_root, split_info,
-                         crop_len=crop_len, transform=transform, on_mem=on_mem)
+        super().__init__(songs_root, split_info, crop_len=crop_len,
+                         transform=transform, on_mem=on_mem, sampling=sampling)
 
     def _retrieve_target(self, fn):
         """"""

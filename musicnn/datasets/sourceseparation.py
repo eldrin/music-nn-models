@@ -12,8 +12,8 @@ from ..datasets.files import musdb18_splits
 class VocalSeparation(AudioDataset):
     """Vocal sepratation dataset from MUSDB18
     """
-    def __init__(self, songs_root, split='train', fold=0,
-                 crop_len=44100, transform=None, on_mem=False):
+    def __init__(self, songs_root, split='train', fold=0, crop_len=44100,
+                 transform=None, on_mem=False, sampling=None):
         """"""
         # load split info
         split_info = musdb18_splits(fold, split)
@@ -21,7 +21,8 @@ class VocalSeparation(AudioDataset):
         # call super class' constructor
         super().__init__(songs_root, split_info,
                          target=None, crop_len=crop_len,
-                         transform=transform, on_mem=on_mem)
+                         transform=transform, on_mem=on_mem,
+                         sampling=sampling)
 
         # load targets
         self.target = {}

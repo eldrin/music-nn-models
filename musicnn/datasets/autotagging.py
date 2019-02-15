@@ -31,8 +31,8 @@ class MSDLastFM50(AudioDataset):
     https://github.com/keunwoochoi/MSD_split_for_tagging
 
     """
-    def __init__(self, songs_root, split='train', fold=0,
-                 crop_len=44100, transform=None, on_mem=False):
+    def __init__(self, songs_root, split='train', fold=0, crop_len=44100,
+                 transform=None, on_mem=False, sampling=None):
         """"""
         # load target
         track_tag_map = pkl.load(open(msd_lastfm50_label(), 'rb'))
@@ -43,7 +43,8 @@ class MSDLastFM50(AudioDataset):
         # call super class' constructor
         super().__init__(songs_root, split_info,
                          target=track_tag_map, crop_len=crop_len,
-                         transform=transform, on_mem=on_mem)
+                         transform=transform, on_mem=on_mem,
+                         sampling=sampling)
 
     def _retrieve_target(self, fn):
         """"""
