@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as f
 
 from .layers import VGGlike2DEncoder, Identity
-from .architecture import STFTInputNetwork
+from .architecture import STFTInputNetwork, BaseArchitecture
 
 
 class VGGlike2DAutoTagger(STFTInputNetwork):
@@ -47,3 +47,26 @@ class VGGlike2DAutoTagger(STFTInputNetwork):
         X = self._preproc(x)
         z, _ = self.E(X)
         return self.P(z)
+
+
+
+class ShallowAutoTagger(BaseArchitecture):
+    """Shallow auto-tagger
+    """
+    def __init__(self, n_outputs, feat_dim, n_hidden=256,
+                 non_linearity=nn.ReLU, batch_norm=True, dropout=0.5):
+        """"""
+        super().__init__(n_hidden, batch_norm, dropout)
+        if batch_norm:
+            bn = nn.BatchNorm1d(feat_dim)
+        else:
+            bn = Identity()
+
+        self.P = nn.Sequential(
+            bn, self._dropout(),
+            nn.Linear(feat_dim, n_outputs)
+        )
+
+    def forward(self, x):
+        return self.P(x)
+

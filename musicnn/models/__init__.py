@@ -1,7 +1,8 @@
-from .autotagging import VGGlike2DAutoTagger
+from .autotagging import VGGlike2DAutoTagger, ShallowAutoTagger
 from .autoencoder import VGGlike2DAutoEncoder
 from .sourceseparation import VGGlike2DUNet
 
 __all__ = ['VGGlike2DAutoTagger',
            'VGGlike2DAutoEncoder',
-           'VGGlike2DUNet']
+           'VGGlike2DUNet',
+           'ShallowAutoTagger']
