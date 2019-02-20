@@ -1,7 +1,9 @@
 from functools import reduce, partial
 import numpy as np
+import librosa
 
 import torch
+import torch_dct as dct
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -43,6 +45,65 @@ class BaseDecoder(nn.Module):
     def forward(self, z):
         """"""
         raise NotImplementedError()
+
+
+class MFCCEncoder(BaseEncoder):
+    """MFCC pipeline for encoding STFT input to MFCC feature vector
+
+    This is not simply transform STFT to MFCC. It even generates
+    more higher level 1D feature vector derived from single Gaussian supervector
+    that is from the concatenated space of original MFCCs and their first and
+    second time difference.
+
+    Args:
+        n_mfcc (int): number of MFCCs to build the end feature vector
+    """
+    def __init__(self, n_mfccs=40, n_fft=1024, sr=22050,
+                 ref_value=1., eps=1e-10, topdb=80):
+        """"""
+        super().__init__()
+        # prepare mel-basis (n_bins, n_mels)
+        self.mel_basis = NoGradParameter(
+            torch.from_numpy(
+                librosa.filters.mel(n_fft=n_fft, sr=sr)
+                .astype(np.float32)
+            ).t()
+        )
+        self.n_mfccs = n_mfccs
+        self.eps = eps
+        self.ref_value = ref_value
+        self.topdb = topdb
+
+    def get_hidden_state(self, X, layer=10):
+        """"""
+        raise ValueError('[ERROR] MFCC encoder does not have hidden states!')
+
+    def forward(self, X):
+        """"""
+        # X is magnitude spectrum (batch_sz, 1, steps, n_freqs)
+        S = X**2  # convert to the power spectrum
+
+        # mel-spectrogram (batch_sz, 1, steps, n_mels)
+        M = S.mm(self.mel_basis)
+
+        # apply db scale
+        log_spec = 10. * torch.log10(torch.max(M, self.eps))
+        log_spec -= 10. * torch.log10(torch.max(self.ref_value, self.eps))
+        log_spec = torch.max(log_spec, log_spec.max() - self.topdb)
+
+        # apply DCT
+        m = dct.dct(log_spec, norm='ortho')[..., :self.n_mfccs]
+
+        # compute the time differences
+        dm = m[:, :, 1:] - m[:, :, :-1]
+        ddm = dm[:, :, 1:] - dm[:, :, :-1]
+
+        # concatenate to get the stats
+        z = torch.cat([
+            m.mean(2), m.std(2), dm.mean(2), dm.std(2), ddm.mean(2), ddm.std(2)
+        ], dim=2)[:, 0]
+
+        return z
 
 
 class VGGlike2DEncoder(BaseEncoder):
