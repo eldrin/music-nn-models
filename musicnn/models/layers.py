@@ -70,9 +70,9 @@ class MFCCEncoder(BaseEncoder):
             ).t()
         )
         self.n_mfccs = n_mfccs
-        self.eps = eps
-        self.ref_value = ref_value
-        self.topdb = topdb
+        self.eps = NoGradParameter(torch.tensor([eps]).float())
+        self.topdb = NoGradParameter(torch.tensor([topdb]).float())
+        self.ref_value = NoGradParameter(torch.tensor([ref_value]).float())
 
     def get_hidden_state(self, X, layer=10):
         """"""
@@ -80,9 +80,8 @@ class MFCCEncoder(BaseEncoder):
 
     def forward(self, X):
         """"""
-        print(X.shape)
-        # X is magnitude spectrum (batch_sz, 1, steps, n_freqs)
-        S = X**2  # convert to the power spectrum
+        # X is magnitude spectrum (batch_sz, 1, n_bins, steps)
+        S = X.permute(0, 1, 3, 2)**2  # convert to the power spectrum
 
         # mel-spectrogram (batch_sz, 1, steps, n_mels)
         # M = S.mm(self.mel_basis)

@@ -19,7 +19,7 @@ from musicnn.models import MFCCAutoTagger
 # audio_root = '/home/jaykim/Documents/datasets/MSD/npy/'
 # model_path = '/data/models/MSDLastFM50_mfcc_test'
 audio_root = '/mnt/data/msd/'
-model_path = '/mnt/data/nmd_data/models/MSDLastFM50_mfcc_test'
+model_path = '/mnt/data/nmd_data/models/MSDLastFM50_mfcc_trial0'
 fold = 0
 n_tags = len(TAGS)
 
@@ -46,7 +46,8 @@ trainer = AutoTaggingTrainer(
     is_gpu        = True,
     checkpoint    = model_path,
     loss_every    = 20,
-    save_every    = 100
+    save_every    = 100,
+    n_jobs        = 0,
 )
 
 # run
