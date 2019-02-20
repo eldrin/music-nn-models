@@ -350,7 +350,7 @@ class TransposedConvBlock2D(nn.Module):
                     '[ERROR] with MaxUnpool, pool index should be provided'
                 )
             else:
-                self.non_linearity(self.convs(self.unpool(x)))
+                return self.non_linearity(self.convs(self.unpool(x)))
         else:
             return self.non_linearity(
                 self.convs(
