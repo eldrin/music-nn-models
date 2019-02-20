@@ -80,11 +80,15 @@ class MFCCEncoder(BaseEncoder):
 
     def forward(self, X):
         """"""
+        print(X.shape)
         # X is magnitude spectrum (batch_sz, 1, steps, n_freqs)
         S = X**2  # convert to the power spectrum
 
         # mel-spectrogram (batch_sz, 1, steps, n_mels)
-        M = S.mm(self.mel_basis)
+        # M = S.mm(self.mel_basis)
+        bsz, nch, steps, n_bins = S.shape
+        n_mels = self.mel_basis.shape[-1]
+        M = S.view(-1, n_bins).mm(self.mel_basis).view(bsz, nch, steps, n_mels)
 
         # apply db scale
         log_spec = 10. * torch.log10(torch.max(M, self.eps))
