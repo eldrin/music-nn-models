@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.metrics import roc_auc_score
-from museval.metrics import bss_eval
+# import musdb
+# import museval
 
 
 def convert_score_mats_to_pred_list(y_true, y_score, k):
@@ -24,8 +25,28 @@ def convert_score_mats_to_pred_list(y_true, y_score, k):
     ]
     return true, pred
 
+def _ndcg(actual, predicted, k=None):
+    """
+    helper function from
+    https://github.com/eldrin/mf-numba 
+    """
+    if len(predicted) > k:
+        predicted = predicted[:k]
 
-def ndcg(y_true, y_score, k=None):
+    dcg = 0.
+    for i, p in enumerate(predicted):
+        if np.any(actual == p) and np.all(predicted[:i] != p):
+            dcg += 1. / np.log2((i+1) + 1.)
+
+    idcg = np.sum(1. / np.log2(np.arange(1, len(actual)+1) + 1.))
+
+    if len(actual) == 0:
+        return 0.
+
+    return dcg / idcg
+
+
+def ndcg(y_true, y_score, k=None, aggregate=np.mean):
     """Normalized discounted cumulative gain at K
 
     Args:
@@ -38,35 +59,45 @@ def ndcg(y_true, y_score, k=None):
     Returns:
         float: NDCG at k
     """
-    # helper function from
-    # https://github.com/eldrin/mf-numba 
-    def _ndcg(actual, predicted, k=k):
-        if len(predicted) > k:
-            predicted = predicted[:k]
-
-        dcg = 0.
-        for i, p in enumerate(predicted):
-            if np.any(actual == p) and np.all(predicted[:i] != p):
-                dcg += 1. / np.log2((i+1) + 1.)
-
-        idcg = np.sum(1. / np.log2(np.arange(1, len(actual)+1) + 1.))
-        
-        if len(actual) == 0:
-            return 0.
-        
-        return dcg / idcg
-
     if k is None:
         k = y_true.shape[-1]  # using all values
 
     true, pred = convert_score_mats_to_pred_list(y_true, y_score, k)
-    return np.mean([
-        _ndcg(np.array(true[j]), np.array(pred[j]), k)
-        for j in range(len(true))
-    ])
+    if aggregate is not None:
+        return aggregate([
+            _ndcg(np.array(true[j]), np.array(pred[j]), k)
+            for j in range(len(true))
+        ])
+    else:
+        return np.array([
+            _ndcg(np.array(true[j]), np.array(pred[j]), k)
+            for j in range(len(true))
+        ])
+    
+    
+def _apk(actual, predicted, k=10):
+    """
+    helper function from
+    https://github.com/eldrin/mf-numba 
+    """
+    if len(predicted) > k:
+        predicted = predicted[:k]
+
+    score = 0.
+    num_hits = 0.
+
+    for i, p in enumerate(predicted):
+        if np.any(actual == p) and np.all(predicted[:i] != p):
+            num_hits += 1.0
+            score += num_hits / (i + 1.)
+
+    if len(actual) == 0:
+        return 0.
+
+    return score / min(len(actual), k)
 
 
-def apk(y_true, y_score, k=None):
+def apk(y_true, y_score, k=None, aggregate=np.mean):
     """Average precision at K
 
     Args:
@@ -80,27 +111,14 @@ def apk(y_true, y_score, k=None):
     Returns:
         float: average precision truncated at k
     """
-    # helper function from
-    # https://github.com/eldrin/mf-numba 
-    def _apk(actual, predicted, k=10):
-        if len(predicted) > k:
-            predicted = predicted[:k]
-        
-        score = 0.
-        num_hits = 0.
-        
-        for i, p in enumerate(predicted):
-            if np.any(actual == p) and np.all(predicted[:i] != p):
-                num_hits += 1.0
-                score += num_hits / (i + 1.)
-        
-        if len(actual) == 0:
-            return 0.
-        
-        return score / min(len(actual), k)
-
     true, pred = convert_score_mats_to_pred_list(y_true, y_score, k)
-    return np.mean([
-        _apk(np.array(true[j]), np.array(pred[j]), k)
-        for j in range(len(true))
-    ])
+    if aggregate is not None:
+        return aggregate([
+            _apk(np.array(true[j]), np.array(pred[j]), k)
+            for j in range(len(true))
+        ])
+    else:
+        return np.array([
+            _apk(np.array(true[j]), np.array(pred[j]), k)
+            for j in range(len(true))
+        ])
