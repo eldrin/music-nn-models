@@ -41,8 +41,9 @@ def get_labels(fn_list_fn):
     return np.array(labels)  # (n_files, n_tags)
 
 # setup variables
-data_root = '/mnt/data/nmd_data/'
-model_path = '/mnt/data/nmd_data/models/mfcc_at_fat_trial0'
+data_root = '/mnt/data/nmd/'
+model_path = '/mnt/data/nmd/models/mfcc_at_fat_nodropout_trial4'
+dropout = 0
 
 # load the dataset
 # get features
@@ -68,7 +69,7 @@ valid = TensorDataset(Xvl, yvl)
 test = TensorDataset(Xts, yts)
 
 # prepare training
-model = ShallowAutoTagger(len(TAGS), Xtr.shape[-1])
+model = ShallowAutoTagger(len(TAGS), Xtr.shape[-1], dropout=dropout)
 trainer = ShallowAutoTaggingTrainer(
     model         = model,
     train_dataset = train,
@@ -77,7 +78,7 @@ trainer = ShallowAutoTaggingTrainer(
     learn_rate    = 0.001,
     batch_size    = 24,
     n_epochs      = 500,
-    is_gpu        = False,
+    is_gpu        = True,
     checkpoint    = model_path,
     loss_every    = 100,
     save_every    = 100

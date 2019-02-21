@@ -1,3 +1,5 @@
+from sklearn.metrics import accuracy_score
+
 import torch
 import torch.nn as nn
 
@@ -39,4 +41,24 @@ class InstRecognitionTrainer(BaseTrainer):
         (X, y) = data  # signal
         o = self.model(X)  # logit
         l = self.loss(o, y)
+
+        # custom logging for accuracy monitoring
+        if self.model.training:
+            if self.iters % self.loss_every == 0:
+                self.logger.add_scalar('tacc', self._calc_acc(o, y), self.iters)
+        else:
+            self.logger.add_scalar('vacc', self._calc_acc(o, y), self.iters)
+
         return l
+
+    def _calc_acc(self, o, y):
+        """"""
+        if o.is_cuda:
+            pred = torch.argmax(o, dim=1).data.cpu().numpy()
+            true = y.data.cpu().numpy()
+        else:
+            pred = torch.argmax(o, dim=1).data.numpy()
+            true = y.data.numpy()
+
+        # cal metric
+        return accuracy_score(true, pred)

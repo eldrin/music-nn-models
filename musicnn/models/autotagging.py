@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as f
 
-from .layers import VGGlike2DEncoder, Identity
+from .layers import MFCCEncoder, VGGlike2DEncoder, Identity
 from .architecture import STFTInputNetwork, BaseArchitecture
 
 
@@ -70,3 +70,38 @@ class ShallowAutoTagger(BaseArchitecture):
     def forward(self, x):
         return self.P(x)
 
+
+
+class MFCCAutoTagger(STFTInputNetwork):
+    """2D auto-tagger with fully on-line MFCC encoder
+    """
+    def __init__(self, n_outputs, sig_len=44100, n_mfccs=40, sr=22050,
+                 n_fft=1024, hop_sz=256, batch_norm=True, dropout=0.5):
+        """"""
+        self.n_hidden = n_mfccs * 6  # with stats and deltas
+
+        super().__init__(sig_len, self.n_hidden, batch_norm, dropout,
+                         n_fft, hop_sz, magnitude=True, log=False,
+                         normalization=False)
+
+        # initialize the encoder
+        self.E = MFCCEncoder(n_mfccs, n_fft, sr)
+
+        # put on some decision (prediction) layers on top of it
+        self.P = nn.Sequential(
+            self.hid_bn(), self._dropout(),
+            nn.Linear(self.n_hidden, n_outputs)
+        )
+
+    def get_hidden_state(self, x, layer=10):
+        return self.E.get_hidden_state(self._preproc(x), layer)
+
+    def get_bottleneck(self, x):
+        X = self._preproc(x)
+        z = self.E(X)
+        return self.P[:-1](z)
+
+    def forward(self, x):
+        X = self._preproc(x)
+        z = self.E(X)
+        return self.P(z)
