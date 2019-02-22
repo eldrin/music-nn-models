@@ -133,13 +133,13 @@ class VGGlike2DUNet(STFTInputNetwork):
 
         return x
 
-    
+
 class MFCCAESourceSeparator(STFTInputNetwork):
     """2D auto-tagger with fully on-line MFCC encoder
     """
     def __init__(self, sig_len=44100, n_mfccs=40, sr=22050,
                  n_fft=1024, hop_sz=256, non_linearity=nn.ReLU,
-                 batch_norm=True, dropout=0.5):
+                 batch_norm=True, layer1_channels=8, dropout=0.5):
         """"""
         self.n_hidden = n_mfccs * 6  # with stats and deltas
 
@@ -154,11 +154,11 @@ class MFCCAESourceSeparator(STFTInputNetwork):
         # initialize the encoder
         _E = VGGlike2DEncoder(
             self.input_shape, self.n_hidden,
-            n_convs=1, layer1_channels=16, kernel_size=3,
-            pooling=nn.AvgPool2d, pool_size=2,
-            non_linearity=non_linearity,
+            n_convs=1, layer1_channels=layer1_channels,
+            kernel_size=3, pooling=nn.AvgPool2d,
+            pool_size=2, non_linearity=non_linearity,
             global_average_pooling=True,
-            batch_norm=True, rtn_pool_idx=False
+            batch_norm=batch_norm, rtn_pool_idx=False
         )
 
         # put on some decision (prediction) layers on top of it
@@ -180,11 +180,8 @@ class MFCCAESourceSeparator(STFTInputNetwork):
 
     def get_bottleneck(self, x):
         # preprocessing
-        _, z = self._preproc(x)  # scaled / not scaled
-        z = self.E(z)
-        
-        # bottleneck
-        z = self.P(z)
+        X, _ = self._preproc(x)  # scaled / not scaled
+        z = self.E(X)  # MFCC feature
         return z
 
     def _preproc(self, x):
@@ -195,16 +192,15 @@ class MFCCAESourceSeparator(STFTInputNetwork):
         Z = self.sclr(self.stft._log(X))[:, None]
         return X[:, None], Z
 
-    def get_mask(self, z):
-        Z = []  # for skip-connection
-        z = self.E(z)
+    def get_mask(self, X):
+        z = self.E(X)
 
         # bottleneck
         z = self.P(z)
         zv = self.iPv(z)
 
         # decoding
-        zv = self.Dv(zv, [None] * len(self.Dv.decoder)) 
+        zv = self.Dv(zv, [None] * len(self.Dv.decoder))
         return torch.sigmoid(zv)
 
     def forward(self, x):
@@ -212,7 +208,7 @@ class MFCCAESourceSeparator(STFTInputNetwork):
         X, z = self._preproc(x)  # scaled / not scaled
 
         # get mask
-        M = self.get_mask(z)
+        M = self.get_mask(X)
 
         return M * X
 
