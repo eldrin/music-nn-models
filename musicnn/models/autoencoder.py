@@ -105,7 +105,7 @@ class MFCCAutoEncoder(STFTInputNetwork):
     def get_bottleneck(self, x):
         X = self._preproc(x)
         z = self.E(X)
-        return z  # MFCC feature
+        return self.P[0](z)
 
     def forward(self, x):
         X = self._preproc(x)

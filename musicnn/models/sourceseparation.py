@@ -182,7 +182,7 @@ class MFCCAESourceSeparator(STFTInputNetwork):
         # preprocessing
         X, _ = self._preproc(x)  # scaled / not scaled
         z = self.E(X)  # MFCC feature
-        return z
+        return self.P[0](z)
 
     def _preproc(self, x):
         X = torch.stft(x, self.stft.n_fft, self.stft.hop_sz,
