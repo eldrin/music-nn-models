@@ -137,7 +137,7 @@ class VGGlike2DUNet(STFTInputNetwork):
 class MFCCAESourceSeparator(STFTInputNetwork):
     """2D auto-tagger with fully on-line MFCC encoder
     """
-    def __init__(self, sig_len=44100, n_mfccs=40, sr=22050,
+    def __init__(self, sig_len=44100, n_mfccs=25, sr=22050,
                  n_fft=1024, hop_sz=256, non_linearity=nn.ReLU,
                  batch_norm=True, layer1_channels=8, dropout=0.5):
         """"""
@@ -148,7 +148,7 @@ class MFCCAESourceSeparator(STFTInputNetwork):
                          normalization=False)
 
         # initialize the encoder
-        self.E = MFCCEncoder(n_mfccs, n_fft, sr)
+        self.E = MFCCEncoder(n_mfccs, n_fft, sr, include_coeff0=False)
 
 
         # initialize the encoder

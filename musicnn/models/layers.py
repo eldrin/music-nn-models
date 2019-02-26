@@ -58,8 +58,8 @@ class MFCCEncoder(BaseEncoder):
     Args:
         n_mfcc (int): number of MFCCs to build the end feature vector
     """
-    def __init__(self, n_mfccs=40, n_fft=1024, sr=22050,
-                 ref_value=1., eps=1e-10, topdb=80):
+    def __init__(self, n_mfccs=40, include_coeff0=False,
+                 n_fft=1024, sr=22050, ref_value=1., eps=1e-10, topdb=80):
         """"""
         super().__init__()
         # prepare mel-basis (n_bins, n_mels)
@@ -69,6 +69,7 @@ class MFCCEncoder(BaseEncoder):
                 .astype(np.float32)
             ).t()
         )
+        self.include_coeff0 = include_coeff0
         self.n_mfccs = n_mfccs
         self.eps = NoGradParameter(torch.tensor([eps]).float())
         self.topdb = NoGradParameter(torch.tensor([topdb]).float())
@@ -95,7 +96,10 @@ class MFCCEncoder(BaseEncoder):
         log_spec = torch.max(log_spec, log_spec.max() - self.topdb)
 
         # apply DCT
-        m = dct.dct(log_spec, norm='ortho')[..., :self.n_mfccs]
+        if self.include_coeff0:
+            m = dct.dct(log_spec, norm='ortho')[..., :self.n_mfccs]
+        else:
+            m = dct.dct(log_spec, norm='ortho')[..., 1:self.n_mfccs]
 
         # compute the time differences
         dm = m[:, :, 1:] - m[:, :, :-1]

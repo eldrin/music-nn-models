@@ -75,7 +75,7 @@ class ShallowAutoTagger(BaseArchitecture):
 class MFCCAutoTagger(STFTInputNetwork):
     """2D auto-tagger with fully on-line MFCC encoder
     """
-    def __init__(self, n_outputs, sig_len=44100, n_mfccs=40, sr=22050,
+    def __init__(self, n_outputs, sig_len=44100, n_mfccs=25, sr=22050,
                  n_fft=1024, hop_sz=256, batch_norm=True, dropout=0.5):
         """"""
         self.n_hidden = n_mfccs * 6  # with stats and deltas
@@ -85,7 +85,7 @@ class MFCCAutoTagger(STFTInputNetwork):
                          normalization=False)
 
         # initialize the encoder
-        self.E = MFCCEncoder(n_mfccs, n_fft, sr)
+        self.E = MFCCEncoder(n_mfccs, n_fft, sr, include_coeff0=False)
 
         # put on some decision (prediction) layers on top of it
         self.P = nn.Sequential(
