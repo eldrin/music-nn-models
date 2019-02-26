@@ -78,7 +78,7 @@ class MFCCAutoTagger(STFTInputNetwork):
     def __init__(self, n_outputs, sig_len=44100, n_mfccs=25, sr=22050,
                  n_fft=1024, hop_sz=256, batch_norm=True, dropout=0.5):
         """"""
-        self.n_hidden = n_mfccs * 6  # with stats and deltas
+        self.n_hidden = (n_mfccs - 1) * 6  # with stats and deltas
 
         super().__init__(sig_len, self.n_hidden, batch_norm, dropout,
                          n_fft, hop_sz, magnitude=True, log=False,

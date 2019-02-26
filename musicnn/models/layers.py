@@ -58,8 +58,8 @@ class MFCCEncoder(BaseEncoder):
     Args:
         n_mfcc (int): number of MFCCs to build the end feature vector
     """
-    def __init__(self, n_mfccs=40, include_coeff0=False,
-                 n_fft=1024, sr=22050, ref_value=1., eps=1e-10, topdb=80):
+    def __init__(self, n_mfccs=40, n_fft=1024, sr=22050,
+                 include_coeff0=False, ref_value=1., eps=1e-10, topdb=80):
         """"""
         super().__init__()
         # prepare mel-basis (n_bins, n_mels)

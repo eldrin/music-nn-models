@@ -141,7 +141,7 @@ class MFCCAESourceSeparator(STFTInputNetwork):
                  n_fft=1024, hop_sz=256, non_linearity=nn.ReLU,
                  batch_norm=True, layer1_channels=8, dropout=0.5):
         """"""
-        self.n_hidden = n_mfccs * 6  # with stats and deltas
+        self.n_hidden = (n_mfccs - 1) * 6  # with stats and deltas
 
         super().__init__(sig_len, self.n_hidden, batch_norm, dropout,
                          n_fft, hop_sz, magnitude=True, log=False,
