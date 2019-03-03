@@ -99,7 +99,7 @@ class MFCCAutoTagger(STFTInputNetwork):
     def get_bottleneck(self, x):
         X = self._preproc(x)
         z = self.E(X)
-        return self.P[0](z)
+        return z
 
     def forward(self, x):
         X = self._preproc(x)
